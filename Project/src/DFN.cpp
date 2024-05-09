@@ -34,7 +34,6 @@ namespace FractureLibrary {
     bool ImportFR_data(const string &filename,
                        FractureMesh& mesh)
     {
-
         ifstream file;
         file.open(filename);
 
@@ -90,11 +89,6 @@ namespace FractureLibrary {
                     vec[i][j] = a;
 
                     listLines.push_back(line); // aggiungo alla fine della lista ogni nuova riga presa dal file
-                    //vector<double> v1(3); // lista coordinate x
-                    //vector<double> v2(3);
-                    //vector<double> v3(3);
-                    //vector<double> v4(3);
-                    //converter >> v1[i] >> v2[i] >> v3[i] >> v4[i];
                 }
             }
 
