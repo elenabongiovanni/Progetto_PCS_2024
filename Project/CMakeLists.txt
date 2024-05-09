@@ -40,9 +40,9 @@ list(APPEND DFN_LINKED_LIBRARIES PRIVATE GTest::gmock_main)
 ################################################################################
 
 add_subdirectory(src)
-#list(APPEND ${CMAKE_PROJECT_NAME}_sources ${src_sources})
-#list(APPEND ${CMAKE_PROJECT_NAME}_headers ${src_headers})
-#list(APPEND ${CMAKE_PROJECT_NAME}_includes ${src_includes})
+list(APPEND ${CMAKE_PROJECT_NAME}_sources ${src_sources})
+list(APPEND ${CMAKE_PROJECT_NAME}_headers ${src_headers})
+list(APPEND ${CMAKE_PROJECT_NAME}_includes ${src_includes})
 list(APPEND DFN_SOURCES ${DFN_sources})
 list(APPEND DFN_HEADERS ${DFN_headers})
 list(APPEND DFN_INCLUDE ${DFN_includes})
@@ -55,10 +55,10 @@ list(APPEND DFN_INCLUDE ${DFN_includes})
 ################################################################################
 add_executable(${PROJECT_NAME}
 	main.cpp
-	${DFN_SOURCES}
-    ${DFN_HEADERS}
-    src/DFN.cpp
-    src/DFN.hpp
+        ${${CMAKE_PROJECT_NAME}_sources}
+        ${${CMAKE_PROJECT_NAME}_headers}
+    #src/DFN.cpp
+    #src/DFN.hpp
 )
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/DFN DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(${PROJECT_NAME} ${DFN_LINKED_LIBRARIES})
