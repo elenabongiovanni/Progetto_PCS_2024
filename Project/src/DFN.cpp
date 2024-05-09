@@ -1,4 +1,4 @@
-#include "DFN.hpp"
+#include "dfn.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -42,7 +42,6 @@ namespace FractureLibrary {
             return false;
 
         string line;
-        //string commentline;
         int N = 0;
         int i = 0;
         while (!file.eof())
@@ -58,28 +57,37 @@ namespace FractureLibrary {
         converter.str(line);
         converter >> N; // stampo il numero di fratture nel file
         mesh.NumFractures = N;
-        string Id;
+
+        cout << "numero di fratture: " << mesh.NumFractures << endl;
+
+        char sep;
         list<string> listLines;
         unsigned int id = 0;
         unsigned int numvertices = 0;
-        for (i=0; i< N; i++)
+        for (i=0; i < N; i++)
         {
-            getline(file,Id, ';'); //leggo l'identificatore
             getline(file,line);
+            getline(file, line); //leggo l'identificatore
+
             istringstream converter(line);
-            converter >> id >> numvertices;
+            converter >> id >> sep >> numvertices;
             mesh.FractureId.push_back(id);
-            mesh.NumVertices = numvertices;
+            //mesh.NumVertices = numvertices;
+
+            cout << "la fracture  " << mesh.FractureId[i] << " ha " << numvertices << " vertici" << endl;
             getline(file,line); // leggo riga vertici senza stamparla (vediamo se farlo tutto insieme le eliminazioni)
 
             vector<Vector3d> vec;
+            vec.resize(numvertices);
             for(unsigned int j=0; j<3; j++){
                 getline(file, line);
                 replace(line.begin(),line.end(),';',' ');
                 istringstream converter(line);
 
                 for(unsigned int i =0; i<numvertices; i++){
-                    converter >> vec[i][j];
+                    double a = 0.0;
+                    converter >> a;
+                    vec[i][j] = a;
 
                     listLines.push_back(line); // aggiungo alla fine della lista ogni nuova riga presa dal file
                     //vector<double> v1(3); // lista coordinate x

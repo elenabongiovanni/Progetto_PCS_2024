@@ -17,7 +17,7 @@ struct FractureMesh
     unsigned int NumFractures = 0; // numero fratture
     //Matrix3d CoordinatesFractures = {}; // coordinate delle fratture
     vector<unsigned int> FractureId = {}; // identificatore
-    unsigned int NumVertices = 0; // rete 3-dimensionale
+    //unsigned int NumVertices = 0; // rete 3-dimensionale //il numero di vertici dovrebe essere un elemento della singola frattura non della mesh
     //vector<vector<unsigned int>> Cell3DVertices = {}; // lista dei vertici
     //vector<Vector2d> Cell1DVertices = {}; // descritto da due vertici: origin e end
     map<unsigned int, vector<Vector3d>> MapFractures = {};
