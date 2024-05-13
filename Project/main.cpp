@@ -2,6 +2,7 @@
 #include "Eigen/Eigen"
 #include "map"
 #include "dfn.hpp"
+#include "utils.hpp"
 #include <iomanip>
 
 using namespace std;
@@ -12,7 +13,7 @@ int main()
     FractureMesh mesh;
     string filepath;
     cout << "Insert filepath: ";    //scegli tra
-                                    //DFN/FR3_data.txt
+                                    //
                                     //DFN/FR10_data.txt
                                     //DFN/FR50_data.txt
                                     //DFN/FR82_data.txt

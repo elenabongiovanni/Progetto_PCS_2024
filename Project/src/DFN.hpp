@@ -25,8 +25,7 @@ struct FractureMesh
 
 };
 
-bool ImportFR_data(const string &filename,
-                   FractureMesh& mesh);
+
 
 }
 #endif // DFN_HPP

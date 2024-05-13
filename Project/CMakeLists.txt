@@ -43,24 +43,24 @@ add_subdirectory(src)
 list(APPEND ${CMAKE_PROJECT_NAME}_sources ${src_sources})
 list(APPEND ${CMAKE_PROJECT_NAME}_headers ${src_headers})
 list(APPEND ${CMAKE_PROJECT_NAME}_includes ${src_includes})
-list(APPEND DFN_SOURCES ${DFN_sources})
-list(APPEND DFN_HEADERS ${DFN_headers})
+#list(APPEND DFN_SOURCES ${DFN_sources})
+#list(APPEND DFN_HEADERS ${DFN_headers})
 list(APPEND DFN_INCLUDE ${DFN_includes})
-
-
 
 
 
 # Create executable
 ################################################################################
 add_executable(${PROJECT_NAME}
-	main.cpp
+        main.cpp
         ${${CMAKE_PROJECT_NAME}_sources}
         ${${CMAKE_PROJECT_NAME}_headers}
-    src/dfn.cpp
+        src/utils.cpp
     src/dfn.hpp
+
+    src/utils.hpp
 )
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/DFN DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+#file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/DFN DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(${PROJECT_NAME} ${DFN_LINKED_LIBRARIES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${DFN_INCLUDE})
 target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)

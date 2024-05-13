@@ -1,4 +1,5 @@
 #include "dfn.hpp"
+#include "utils.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -93,6 +94,20 @@ namespace FractureLibrary {
             }
 
             mesh.MapFractures.insert({id,{vec}});
+
+            //calcolo le intersezioni tre le figure
+            /*for(unsigned int i = 0; i<mesh.NumFractures -1; i++){
+                for(unsigned int j = 1; j < mesh.NumFractures; j++){
+                    //confronto ogi figura con tutte quelle che vengono dopo di lei
+                    Vector3d p;
+                    for(unsigned int k = 0; k < mesh.MapFractures.at(i).size(); k++){
+                        p[1]= mesh.MapFractures.at(i)[k][1];
+                        p[2]= mesh.MapFractures.at(i)[k][2];
+                        p[3]= mesh.MapFractures.at(i)[k][3];
+                    }
+
+                }
+            }*/
 
             //for(unsigned int i = 0; i < numvertices; i++)
             //  converter >> x[i];
