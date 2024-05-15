@@ -11,6 +11,16 @@ using namespace Eigen;
 
 namespace FractureLibrary
 {
+struct Fracture
+{
+    unsigned int id = 0;
+    unsigned int NumVertices = 0;
+    vector<Vector3d> vertices = {};
+    Vector3d barycentre = {};
+    map<unsigned int, vector<Vector3d>> Intersections = {};
+
+};
+
 // struttura mesh poligonale
 struct FractureMesh
 {
@@ -20,11 +30,10 @@ struct FractureMesh
     //unsigned int NumVertices = 0; // rete 3-dimensionale //il numero di vertici dovrebe essere un elemento della singola frattura non della mesh
     //vector<vector<unsigned int>> Cell3DVertices = {}; // lista dei vertici
     //vector<Vector2d> Cell1DVertices = {}; // descritto da due vertici: origin e end
-    map<unsigned int, vector<Vector3d>> MapFractures = {};
+    map<unsigned int, Fracture> MapFractures = {}; // potresti cambiare con freactures
     //vector<Vector3d<double>> CoordinatesFractures = {};
 
 };
-
 
 
 }
