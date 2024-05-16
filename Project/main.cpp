@@ -11,7 +11,7 @@ using namespace FractureLibrary;
 int main()
 {
     FractureMesh mesh;
-    string filepath;
+    /*string filepath;
     cout << "Insert filepath: ";    //scegli tra
         //DFN/FR3_data.txt
         //DFN/FR10_data.txt
@@ -19,9 +19,9 @@ int main()
         //DFN/FR82_data.txt
         //DFN/FR200_data.txt
         //DFN/FR362_data.txt
-    getline(cin, filepath);
+    getline(cin, filepath);*/
 
-    if(!ImportFR_data(filepath,mesh)){
+    if(!ImportFR_data("FR3_data.txt",mesh)){
         return 1;
     }
 
@@ -35,6 +35,12 @@ int main()
         }
         cout << endl;
     }
+
+
+    for(unsigned int i=0; i<mesh.NumFractures; i++){
+        findIntersections(i, mesh);
+    }
+
 
     return 0;
 }

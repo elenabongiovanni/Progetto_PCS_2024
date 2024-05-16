@@ -30,7 +30,7 @@ double maxDist(Fracture f){
     return r;
 }
 
-// importo i dati dai file ( va bene per tutti questa funzione!!!!
+// importo i dati dai file ( va bene per tutti i file questa funzione )
 bool ImportFR_data(const string &filename,
                    FractureMesh& mesh)
 {
@@ -60,7 +60,7 @@ bool ImportFR_data(const string &filename,
     cout << "numero di fratture: " << mesh.NumFractures << endl;
 
     char sep;
-    list<string> listLines;
+    //list<string> listLines;
     unsigned int id = 0;
     unsigned int numvertices = 0;
     for (i=0; i < N; i++)
@@ -88,25 +88,26 @@ bool ImportFR_data(const string &filename,
             istringstream converter(line);
             bary[i] = 0.0;
 
-            for(unsigned int i =0; i<numvertices; i++){
+            for(unsigned int t =0; t<numvertices; t++){
                 double a = 0.0;
                 converter >> a;
-                vec[i][j] = a;
+                vec[t][j] = a;
                 bary[i]+=a;
-
-                listLines.push_back(line); // aggiungo alla fine della lista ogni nuova riga presa dal file
+                //cout << vec[t][j];
+                //listLines.push_back(line); // aggiungo alla fine della lista ogni nuova riga presa dal file
             }
             bary[j] = bary[j]/numvertices;
         }
 
-        mesh.MapFractures[id]=f;
         f.vertices = vec;
+        mesh.MapFractures[id]= f;
 
-        cout << mesh.MapFractures.at(id).NumVertices << endl;
+
+        /*cout << mesh.MapFractures.at(id).NumVertices << endl;
         cout << (mesh.MapFractures[id]).vertices[0][0] << endl;
-        for(int k=0;k<f.NumVertices;k++){
+        for(unsigned int k=0;k<f.NumVertices;k++){
             cout << vec[k][0] << "  " << vec[k][1] << "  " << vec[k][2] << endl;
-        }
+        }*/
     }
 
     file.close();
@@ -167,7 +168,7 @@ void findIntersections(const unsigned int &id, FractureMesh &mesh){
         }
         else{ //se non sono complanari calcolo le intersezioni tra i piani
             //Vector3d t = nF.cross(nFConf);
-            cout << "bau";
+            cout << "bau\n";
         }
 
 
