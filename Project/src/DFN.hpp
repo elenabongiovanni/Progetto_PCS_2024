@@ -31,6 +31,7 @@ struct FractureMesh
     //vector<vector<unsigned int>> Cell3DVertices = {}; // lista dei vertici
     //vector<Vector2d> Cell1DVertices = {}; // descritto da due vertici: origin e end
     map<unsigned int, Fracture> MapFractures = {}; // potresti cambiare con freactures
+    //vector<Fracture> MapFractures = {};
     //vector<Vector3d<double>> CoordinatesFractures = {};
 
 };

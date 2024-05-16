@@ -12,6 +12,7 @@ int main()
 {
     FractureMesh mesh;
     string filepath;
+    Fracture f;
     cout << "Insert filepath: ";    //scegli tra
                                     //DFN/FR3_data.txt
                                     //DFN/FR10_data.txt
@@ -27,9 +28,9 @@ int main()
 
     for(unsigned int i=0; i<mesh.NumFractures; i++){
         cout << "Fracture id: " << i << endl;
-        for(unsigned int j=0; j<mesh.MapFractures.at(i).vertices.size(); j++){
+        for(unsigned int j=0; j<mesh.MapFractures[i].NumVertices; j++){
             for(unsigned int k=0; k<3; k++){
-                cout << scientific << setprecision(16) <<  mesh.MapFractures.at(i).vertices[j][k] << " ";
+                cout << scientific << setprecision(16) << mesh.MapFractures[i].vertices[j][k] << " ";
             }
             cout << endl;
         }
