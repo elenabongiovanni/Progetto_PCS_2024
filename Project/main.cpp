@@ -44,10 +44,10 @@ int main()
             cout <<mesh.MapFractures.at(i).barycentre[j]<<" ";
             //findIntersections(i, mesh);
         }
-        cout << " ]\n";
+        cout << " ]"<<endl;
     }
 
-    for(unsigned int i=0; i<mesh.NumFractures; i++){
+    for(unsigned int i=0; i<mesh.NumFractures-1; i++){
         findIntersections(i, mesh);
     }
 

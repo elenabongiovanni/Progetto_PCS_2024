@@ -21,6 +21,11 @@ struct Fracture
 
 };
 
+struct Traccia
+{
+
+};
+
 // struttura mesh poligonale
 struct FractureMesh
 {
