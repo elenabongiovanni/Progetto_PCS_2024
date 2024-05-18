@@ -37,5 +37,22 @@ int main()
         cout << endl;
     }
 
+
+    /*for(unsigned int i=0; i<mesh.NumFractures; i++){
+        cout << "il baricentro della frattura " << i << " e':\n [ ";
+        for(unsigned int j=0; j<3; j++){
+            cout <<mesh.MapFractures.at(i).barycentre[j]<<" ";
+            //findIntersections(i, mesh);
+        }
+        cout << " ]"<<endl;
+    }*/
+
+
+    for(unsigned int i=0; i<mesh.NumFractures-1; i++){
+        findIntersections(i, mesh);
+        cout << endl;
+    }
+
+
     return 0;
 }

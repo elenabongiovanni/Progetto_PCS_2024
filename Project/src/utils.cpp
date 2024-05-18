@@ -18,7 +18,7 @@ namespace FractureLibrary {
 
     }
 
-    bool compareFirstElement(const Vector2D& a, const Vector2D& b) {
+    bool compareFirstElement(const Vector3d& a, const Vector3d& b) {
         return a[0] < b[0];
     }
 
@@ -77,7 +77,7 @@ namespace FractureLibrary {
         char sep;
         //list<string> listLines;
         unsigned int id = 0;
-        //unsigned int numvertices = 0;
+        unsigned int numvertices = 0;
         for (i=0; i < N; i++)
         {
             Fracture f;
@@ -85,10 +85,10 @@ namespace FractureLibrary {
             getline(file, line); //leggo l'identificatore
 
             istringstream converter(line);
-            converter >> id >> sep >> f.NumVertices;
+            converter >> id >> sep >> numvertices;
             f.id = id;
             mesh.FractureId[i]=id;
-            //f.NumVertices = numvertices;
+            f.NumVertices = numvertices;
 
             cout << "la fracture  " << mesh.FractureId[i] << " ha " << numvertices << " vertici" << endl;
             getline(file,line); // leggo riga vertici senza stamparla (vediamo se farlo tutto insieme le eliminazioni)
@@ -114,6 +114,7 @@ namespace FractureLibrary {
                 bary[j] = bary[j]/numvertices;
             }
 
+            f.barycentre = bary;
             mesh.MapFractures[id]=f;
 
         }
@@ -126,26 +127,29 @@ namespace FractureLibrary {
     void findIntersections(const unsigned int &id, FractureMesh &mesh){
         double tol = 10 * numeric_limits<double>::epsilon();
         Fracture f = mesh.MapFractures.at(id);
+        Vector3d lato1F;
+        Vector3d lato2F;
+        //calcolo 2 lati
+        for(unsigned int j =0; j<3; j++){
+            lato1F[j] = f.vertices[1][j] - f.vertices[0][j];
+            lato2F[j] = f.vertices[3][j] - f.vertices[0][j];
+        }
+        //normalizzo i lati
+        double lato1Fn = lato1F.squaredNorm();
+        double lato2Fn = lato2F.squaredNorm();
+        //calcolo il vettore normale e lo normalizzo
+        Vector3d planeF;
+        planeF[0] = (lato1F[1]*lato2F[2] - lato1F[2]*lato2F[1])/(lato1Fn*lato2Fn);
+        planeF[1] = (lato1F[2]*lato2F[0] - lato1F[0]*lato2F[2])/(lato1Fn*lato2Fn);
+        planeF[2] = (lato1F[0]*lato2F[1] - lato1F[1]*lato2F[0])/(lato1Fn*lato2Fn);
+        double dF = -(planeF[0] * f.vertices[0][0]) - (planeF[1] * f.vertices[0][1]) - (planeF[2] * f.vertices[0][2]);
+
+        //ciclo sui poigoni successivi
         for(unsigned int i=id+1; i<mesh.NumFractures; i++){
             Fracture fConf = mesh.MapFractures.at(i);
-            Vector3d lato1F;
-            Vector3d lato2F;
+
             Vector3d lato1FConf;
             Vector3d lato2FConf;
-            //calcolo 2 lati
-            for(unsigned int j =0; j<3; j++){
-                lato1F[j] = f.vertices[1][j] - f.vertices[0][j];
-                lato2F[j] = f.vertices[3][j] - f.vertices[0][j];
-            }
-            //normalizzo i lati
-            double lato1Fn = lato1F.squaredNorm();
-            double lato2Fn = lato2F.squaredNorm();
-            //calcolo il vettore normale e lo normalizzo
-            Vector3d planeF;
-            planeF[0] = (lato1F[1]*lato2F[2] - lato1F[2]*lato2F[1])/(lato1Fn*lato2Fn);
-            planeF[1] = (lato1F[2]*lato2F[0] - lato1F[0]*lato2F[2])/(lato1Fn*lato2Fn);
-            planeF[2] = (lato1F[0]*lato2F[1] - lato1F[1]*lato2F[0])/(lato1Fn*lato2Fn);
-            double dF = -(planeF[0] * f.vertices[0][0]) - (planeF[1] * f.vertices[0][1]) - (planeF[2] * f.vertices[0][2]);
 
             for(unsigned int j =0; j<3; j++){
                 lato1FConf[j] = fConf.vertices[1][j] - fConf.vertices[0][j];
@@ -161,46 +165,52 @@ namespace FractureLibrary {
             planeFConf[2] = (lato1FConf[0]*lato2FConf[1] - lato1FConf[1]*lato2FConf[0])/(lato1FnConf*lato2FnConf);
             double dFConf = -(planeFConf[0] * fConf.vertices[0][0]) - (planeFConf[1] * fConf.vertices[0][1]) - (planeFConf[2] * fConf.vertices[0][2]);
 
-
+            //cout <<"Il piano "<< id << " ha equazione "<< planeF[0] <<"x + " <<planeF[1] <<"y + " <<planeF[2] <<"z + " << dF << " = 0 "<<endl;
+            //cout <<"Il piano "<< i << " ha equazione "<< planeFConf[0] <<"x + " <<planeFConf[1] <<"y + " <<planeFConf[2] <<"z + " << dFConf << "=0 "<<endl;
 
             if(planeF[0]==planeFConf[0] && planeF[1]==planeFConf[1] && planeF[2]==planeFConf[2] && dF == dFConf){ //condizone di complanarità
-                cout << "le figure sono complanari" << endl;
+                cout << "le figure "<< id <<" e " << i <<" sono complanari" << endl;
                 //codice su possibile tracce lungo i lati
+
+
                 //continue;
             }
 
             else if(planeF[0]==planeFConf[0] && planeF[1]==planeFConf[1] && planeF[2]==planeFConf[2] && dF != dFConf){
-                cout << "le figure giacciono su piani paralleli" << endl;
+                cout << "le figure "<< id <<" e " << i <<" giacciono su piani paralleli" << endl;
                 continue;
             }
 
             else if((dist(f.barycentre, fConf.barycentre) - (maxDist(f) + maxDist(fConf))) > tol ){
-                cout << "le figure sicuramente non si intersecano" << endl;
+                cout << "le figure "<< id <<" e " << i <<" sicuramente non si intersecano" << endl;
                 continue;
 
             }
             else { //se non sono complanari calcolo le intersezioni tra i piani
                 Vector3d t = planeF.cross(planeFConf);
+                //cout << "retta di intersezione: " << t[0] << " " <<t[1] << " " << t[2] << endl;
                 Matrix3d A;
                 A.row(0) = planeF;
                 A.row(1) = planeFConf;
                 A.row(2) = t;
                 Vector3d b;
-                b[0] = dF;
-                b[1] = dFConf;
+                b[0] = -dF;
+                b[1] = -dFConf;
                 b[2] = 0.0;
 
                 if(A.determinant() == 0){
-                    cout << "determinate = 0" << endl;
-                    break;
+                    //cout << "Le figure "<< id <<" e " << i <<" il deteminante è nullo ora non mi ricordo il perchè" << endl;
+                    break; //questo non è di nuovo il caso di complanarità???
                 }
 
                 Vector3d p = PALUSolver(A, b);
+                //cout << "punto p di intersezione: " << p[0] << " " <<p[1] << " " << p[2] << endl;
 
-                bool onEdgeF = false;
-                bool onEdgeFC = false;
+                //bool onEdgeF = false;
+                //bool onEdgeFC = false;
+
                 //calcolo le interseioni dei lati della fracture con la retta di interseione dei piani
-                vector<Vector2d> intersectionsF;
+                vector<Vector3d> intersectionsF;
                 intersectionsF.reserve(2);
                 for(unsigned int l = 0; l < f.NumVertices; l++){
                     Matrix2d A1;
@@ -213,16 +223,16 @@ namespace FractureLibrary {
                     else{
                         vert1 = l-3;
                     }
-                    Vector2d r1(f.vertices[vert1][0] - f.vertices[vert0][0], p[0]+t[0] - p[0]);
-                    Vector2d r2(f.vertices[vert1][1] - f.vertices[vert0][1], p[1]+t[1] - p[1]);
+                    Vector2d r1(f.vertices[vert1][0] - f.vertices[vert0][0], t[0]);
+                    Vector2d r2(f.vertices[vert1][1] - f.vertices[vert0][1], t[1]);
                     A1.row(0) = r1;
                     A1.row(1) = r2;
 
                     if(A1.determinant()==0){ // il lato e retta di intersezione tra i piani sono paralleli oppure sovrapposto
                         if((f.vertices[vert0][0]-p[0])/t[0] == (f.vertices[vert0][1]-p[1])/t[1]){ //questo dovrebbe dirmi se stanno sulla stessa retta
-                            onEdgeF = true;
-                            Vector2d v1(f.vertices[vert0][0],f.vertices[vert0][1]);
-                            Vector2d v2(f.vertices[vert1][0],f.vertices[vert1][1]);
+                            //onEdgeF = true;
+                            Vector3d v1(f.vertices[vert0][0],f.vertices[vert0][1], f.vertices[vert0][2]);
+                            Vector3d v2(f.vertices[vert1][0],f.vertices[vert1][1], f.vertices[vert1][2]);
                             intersectionsF.push_back(v1);
                             intersectionsF.push_back(v2);
                             break; // esco dal ciclo for sui lati perchè ho già determinato i due punti di intersezione
@@ -234,17 +244,20 @@ namespace FractureLibrary {
                     }
 
                     else{
-                        Vector2d b1(p[0] - f.vertices[l][0], p[1] - f.vertices[l][1]);
+                        Vector2d b1(p[0] - f.vertices[vert0][0], p[1] - f.vertices[vert0][1]);
                         Vector2d coeff = PALUSolver(A1, b1);
 
                         if(coeff[0]>=0 && coeff[0]<=1){ //controllo che l'intersezione sia interna al lato del poligono (combinazione convessa)
-                            Vector2d v;
-                            v[0] = f.vertices[l][0] + coeff[0]*(f.vertices[l+1][0] - f.vertices[l][0]);
-                            v[1] = f.vertices[l][1] + coeff[1]*(f.vertices[l+1][1] - f.vertices[l][1]);
+                            //cout<<"entra qui"<<endl;
+                            Vector3d v;
+                            v[0] = f.vertices[vert0][0] + coeff[0]*(f.vertices[vert1][0] - f.vertices[vert0][0]);
+                            v[1] = f.vertices[vert0][1] + coeff[0]*(f.vertices[vert1][1] - f.vertices[vert0][1]);
+                            v[2] = (-dF - planeF[0]*v[0] - planeF[1]*v[1])/planeF[2];
                             intersectionsF.push_back(v);
                         }
 
                         if(intersectionsF.size()==2){
+                            //cout << "il primo poligono è tagliato" << endl;
                             break;  //esco dal ciclo perchè di nuovo non è posisbile che una retta intersechi un poligono in più di due punti
                         }           // potremmo anche mettere questo if fuori dall'else e levare il break prima , come ci piace di più
                     }
@@ -252,11 +265,13 @@ namespace FractureLibrary {
 
                 if(intersectionsF.size()==0){ // se nessuno dei lati del poligono interseca la retta allora sicuramente i due poligono in esame
                                               // non si iintersecano -> passo a confromtarlo con un altro poligono
+                    cout << "Le figure " << id <<" e " << i <<" non si intersecano perche' la prima non e' attraversata dalla retta di intersezione tra i piani" << endl;
                     continue;
                 }
 
+
                 //calcolo le intersezioni della retta con l'altra fracture
-                vector<Vector2d> intersectionsFC;
+                vector<Vector3d> intersectionsFC;
                 intersectionsFC.reserve(2);
                 for(unsigned int l = 0; l < fConf.NumVertices; l++){
                     Matrix2d A1;
@@ -269,18 +284,20 @@ namespace FractureLibrary {
                     else{
                         vert1 = l-3;
                     }
-                    Vector2d r1(fConf.vertices[vert1][0] - fConf.vertices[vert0][0], p[0]+t[0] - p[0);
-                    Vector2d r2(fConf.vertices[vert1][1] - fConf.vertices[vert0][1], p[1]+t[1] - p[1]);
+                    Vector2d r1(fConf.vertices[vert1][0] - fConf.vertices[vert0][0], t[0]);
+                    Vector2d r2(fConf.vertices[vert1][1] - fConf.vertices[vert0][1], t[1]);
+                    //cout << r1[0] << " " << r2[0] << endl;
                     A1.row(0) = r1;
                     A1.row(1) = r2;
 
                     if(A1.determinant()==0){
+                        //cout << "det = 0";
                         if((fConf.vertices[vert0][0]-p[0])/t[0] == (fConf.vertices[vert0][1]-p[1])/t[1]){
-                            onEdgeFC = true;
-                            Vector2d v1(fConf.vertices[vert0][0],fConf.vertices[vert0][1]);
-                            Vector2d v2(fConf.vertices[vert1][0],fConf.vertices[vert1][1]);
-                            intersectionsFConf.push_back(v1);
-                            intersectionsFConf.push_back(v2);
+                            //onEdgeFC = true;
+                            Vector3d v1(fConf.vertices[vert0][0],fConf.vertices[vert0][1], fConf.vertices[vert0][2]);
+                            Vector3d v2(fConf.vertices[vert1][0],fConf.vertices[vert1][1], fConf.vertices[vert1][2]);
+                            intersectionsFC.push_back(v1);
+                            intersectionsFC.push_back(v2);
                             break;
                         }
                         else{ //sono parallele
@@ -289,71 +306,114 @@ namespace FractureLibrary {
                     }
 
                     else{
-                        Vector2d b1(p[0] - fConf.vertices[l][0], p[1] - fConf.vertices[l][1]);
+                        Vector2d b1(p[0] - fConf.vertices[vert0][0], p[1] - fConf.vertices[vert0][1]);
                         Vector2d coeff = PALUSolver(A1, b1);
 
-                        if(coeff[0]>=0 && coeff[0]<=1 && coeff[1] >= 0 && coeff[1]<=1){
-                            Vector2d v;
-                            v[0] = fConf.vertices[l][0] + coeff[0]*(fConf.vertices[l+1][0] - fConf.vertices[l][0]);
-                            v[1] = fConf.vertices[l][1] + coeff[1]*(fConf.vertices[l+1][1] - fConf.vertices[l][1]);
+                        if(coeff[0]>=0 && coeff[0]<=1){
+                            Vector3d v;
+                            v[0] = fConf.vertices[vert0][0] + coeff[0]*(fConf.vertices[vert1][0] - fConf.vertices[vert0][0]);
+                            v[1] = fConf.vertices[vert0][1] + coeff[0]*(fConf.vertices[vert1][1] - fConf.vertices[vert0][1]);
+                            v[2] = (- dFConf - planeFConf[0]*v[0] - planeFConf[1]*v[1])/planeFConf[2];
                             intersectionsFC.push_back(v);
                         }
 
                         if(intersectionsFC.size()==2){
+                            //cout << "il secondo poligono è tagliato" << endl;
                             break;
                         }
                     }
                 }
 
                 if(intersectionsFC.size()==0){
+                    cout << "Le figure " << id <<" e " << i << " non si intersecano perche' la seconda non e' attraversata dalla retta di intersezione tra i piani" << endl;
                     continue;
                 }
 
                 // calcolo le interseioni tra i due segmenti tovati
-                vector<Vector2d> trace2d;
-                trace2d.resize(2);
+                vector<Vector3d> trace;
+                trace.resize(2);
 
-                Matrix2d A2;
-                A2.row(0)(intersectionsF[1][0] - intersectionsF[0][0], intersectionsFC[1][0] - intersectionsFC[0][0]);
-                A2.row(1)(intersectionsF[1][1] - intersectionsF[0][1], intersectionsFC[1][1] - intersectionsFC[0][1]);
-                Vector2d b2(intersectionsFC[0][0] - intersectionsF[0][0], intersectionsFC[0][1] - intersectionsF[0][1]);
-                if(A2.determinant() == 0){ //i due segmenti stanno sulla stessa retta
+               // Matrix2d A2;
+               // A2.row(0)(intersectionsF[1][0] - intersectionsF[0][0], intersectionsFC[1][0] - intersectionsFC[0][0]);
+                //A2.row(1)(intersectionsF[1][1] - intersectionsF[0][1], intersectionsFC[1][1] - intersectionsFC[0][1]);
+                //Vector2d b2(intersectionsFC[0][0] - intersectionsF[0][0], intersectionsFC[0][1] - intersectionsF[0][1]);
+                //if(A2.determinant() == 0){ //i due segmenti stanno sulla stessa retta
                     sort(intersectionsF.begin(), intersectionsF.end(), compareFirstElement);
                     sort(intersectionsFC.begin(), intersectionsFC.end(), compareFirstElement);
-                        //Vector2d coordx1(intersectionsF[0][0], intersectionsF[1][0], c
-                    //coordx1.sort();
-                    //Vector2d coordx2(intersectionsFC[0][0], intersectionsF[1][0]);
-                    //coordx2.sort();
+                    //cout <<"intersezioni x primo poligono " << intersectionsF[0][0] << " " << intersectionsF[1][0] << endl;;
+                    //cout <<"intersezionix secondo poligono " << intersectionsFC[0][0] << " " << intersectionsFC[1][0] << endl;
+
                     if(intersectionsF[0][0] <= intersectionsFC[0][0]){
                         if(intersectionsF[1][0]<intersectionsFC[0][0]){
-                            cout << "non si intersecano" << endl;
+                            cout <<"Le figure "<< id <<" e " << i << " non si intersecano" << endl;
                             continue;
                         }
                         else if(intersectionsF[1][0] >= intersectionsFC[0][0] && intersectionsF[1][0]<= intersectionsFC[1][0]){
-                            trace2d(intersectionsFC[0], intersectionsF[1]);
+                            double z1F = (-dF - planeF[0]*intersectionsFC[0][0] - planeF[1]*intersectionsFC[0][1])/planeF[2];
+                            double z2FC = (-dFConf - planeFConf[0]*intersectionsF[1][0] - planeFConf[1]*intersectionsF[1][1])/planeFConf[2];
+                            if((intersectionsFC[0][2]-z1F)<tol && (intersectionsF[1][2]-z2FC)<tol){
+                                trace.push_back(intersectionsFC[0]);
+                                trace.push_back(intersectionsF[1]);
+                                cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
+                            }
+                            else{
+                                cout << id <<" e " << i << " in realtà non si intersecano sulla z" << endl;
+                                continue;
+                            }
 
                         }
-                        else if(coordx1[1]>=coordx2[1]){
-                            trace2d(intersectionsFC[0], intersectionsFC[1]);
+                        else if(intersectionsF[1][0]>=intersectionsFC[1][0]){
+                            double z1F = (-dF - planeF[0]*intersectionsFC[0][0] - planeF[1]*intersectionsFC[0][1])/planeF[2];
+                            double z2F = (-dF - planeF[0]*intersectionsFC[1][0] - planeF[1]*intersectionsFC[1][1])/planeF[2];
+                            if((intersectionsFC[0][2]-z1F)<tol && (intersectionsFC[1][2]-z2F)<tol){
+                                trace.push_back(intersectionsFC[0]);
+                                trace.push_back(intersectionsFC[1]);
+                                cout << "LE DUE FIGURE " << id <<" e " << i <<" SI INTERSECANO" << endl;
+                            }
+                            else{
+                                cout << id <<" e " << i  << " in realtà non si intersecano sulla z" << endl;
+                                continue;
+                            }
                         }
+
                     }else{
                         if(intersectionsFC[1][0]<intersectionsF[0][0]){
-                            cout << "non si intersecano" << endl;
+                            cout <<"Le figure "<< id <<" e " << i << " non si intersecano" << endl;
                             continue;
                         }
                         else if(intersectionsFC[1][0]>=intersectionsF[0][0] && intersectionsFC[1][0]<=intersectionsF[1][0]){
-                            trace2d(intersectionsF[0], intersectionsFC[1]);
+                            double z1FC = (-dFConf - planeFConf[0]*intersectionsF[0][0] - planeFConf[1]*intersectionsF[0][1])/planeFConf[2];
+                            double z2F = (-dF - planeF[0]*intersectionsFC[1][0] - planeF[1]*intersectionsFC[1][1])/planeF[2];
+                            if((intersectionsF[0][2]-z1FC)<tol && (intersectionsFC[1][2]-z2F)<tol){
+                                trace.push_back(intersectionsF[0]);
+                                trace.push_back(intersectionsFC[1]);
+                                cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
+                            }
+                            else{
+                                cout << id <<" e " << i  << " in realtà non si intersecano sulla z" << endl;
+                                continue;
+                            }
+
                         }
                         else if(intersectionsFC[1][0]>=intersectionsF[1][0]){
-                            trace2d(intersectionsF[0], intersectionsF[1]);
+                            double z1FC = (-dFConf - planeFConf[0]*intersectionsF[0][0] - planeFConf[1]*intersectionsF[0][1])/planeFConf[2];
+                            double z2FC = (-dFConf - planeFConf[0]*intersectionsF[1][0] - planeFConf[1]*intersectionsF[1][1])/planeFConf[2];
+                            if((intersectionsF[0][2]-z1FC)<tol && (intersectionsF[1][2]-z2FC)<tol){
+                                trace.push_back(intersectionsF[0]);
+                                trace.push_back(intersectionsF[1]);
+                                cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
+                            }
+                            else{
+                                cout << id <<" e " << i  << " in realtà non si intersecano sulla z" << endl;
+                                continue;
+                            }
+
                         }
                     }
 
-                    //manca controllo sulla z
+               // }
 
-                }
-
-                else{
+                /*else{
                     Vector2d coeff = PALUSolver(A2, b2); //controlla b2
                     if(coeff[0]>=0 && coeff[0]<=1 && coeff[1]>=0 && coeff[1]<=1){ //controllo che il punto di intersezione sia interno ai segmenti
                     Vector2d pIn(intersectionsF[0][0] + coeff[0]*(intersectionsF[1][0] - intersectionsF[0][0]),
@@ -362,8 +422,10 @@ namespace FractureLibrary {
                             //controllo che anche la coordinata z sia comune
 
                     }
-                }
+                }*/
             }
+            //cout << endl;
         }
+
     }
 }
