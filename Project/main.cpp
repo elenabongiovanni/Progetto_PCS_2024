@@ -53,6 +53,17 @@ int main()
         cout << endl;
     }
 
+    /*for(unsigned int i=0; i<mesh.vecTrace.size(); i++){
+        Trace t = mesh.vecTrace[i];
+
+        for(auto pair : t.fracturesTrace){
+            cout << "bau" << endl;
+            if(pair.second){
+                cout <<"fratturna numero "<< pair.first << " e' passante" << endl;
+            }
+        }
+    }*/
+
 
     return 0;
 }

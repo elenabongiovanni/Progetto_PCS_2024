@@ -126,6 +126,7 @@ namespace FractureLibrary {
 
     void findIntersections(const unsigned int &id, FractureMesh &mesh){
         double tol = 10 * numeric_limits<double>::epsilon();
+        mesh.vecTrace.reserve(mesh.NumFractures*(mesh.NumFractures-1));
         Fracture f = mesh.MapFractures.at(id);
         Vector3d lato1F;
         Vector3d lato2F;
@@ -146,6 +147,10 @@ namespace FractureLibrary {
 
         //ciclo sui poigoni successivi
         for(unsigned int i=id+1; i<mesh.NumFractures; i++){
+            bool inter = false;
+            vector<Vector3d> trace;
+            trace.resize(2);
+
             Fracture fConf = mesh.MapFractures.at(i);
 
             Vector3d lato1FConf;
@@ -330,101 +335,172 @@ namespace FractureLibrary {
                 }
 
                 // calcolo le interseioni tra i due segmenti tovati
-                vector<Vector3d> trace;
-                trace.resize(2);
 
                // Matrix2d A2;
                // A2.row(0)(intersectionsF[1][0] - intersectionsF[0][0], intersectionsFC[1][0] - intersectionsFC[0][0]);
                 //A2.row(1)(intersectionsF[1][1] - intersectionsF[0][1], intersectionsFC[1][1] - intersectionsFC[0][1]);
                 //Vector2d b2(intersectionsFC[0][0] - intersectionsF[0][0], intersectionsFC[0][1] - intersectionsF[0][1]);
                 //if(A2.determinant() == 0){ //i due segmenti stanno sulla stessa retta
-                    sort(intersectionsF.begin(), intersectionsF.end(), compareFirstElement);
-                    sort(intersectionsFC.begin(), intersectionsFC.end(), compareFirstElement);
+                sort(intersectionsF.begin(), intersectionsF.end(), compareFirstElement);
+                sort(intersectionsFC.begin(), intersectionsFC.end(), compareFirstElement);
                     //cout <<"intersezioni x primo poligono " << intersectionsF[0][0] << " " << intersectionsF[1][0] << endl;;
                     //cout <<"intersezionix secondo poligono " << intersectionsFC[0][0] << " " << intersectionsFC[1][0] << endl;
 
-                    if(intersectionsF[0][0] <= intersectionsFC[0][0]){
-                        if(intersectionsF[1][0]<intersectionsFC[0][0]){
-                            cout <<"Le figure "<< id <<" e " << i << " non si intersecano" << endl;
+                if(intersectionsF[0][0] <= intersectionsFC[0][0]){
+                    if(intersectionsF[1][0]<intersectionsFC[0][0]){
+                        cout <<"Le figure "<< id <<" e " << i << " non si intersecano" << endl;
+                        continue;
+                    }
+                    else if(intersectionsF[1][0] >= intersectionsFC[0][0] && intersectionsF[1][0]<= intersectionsFC[1][0]){
+                        double z1F = (-dF - planeF[0]*intersectionsFC[0][0] - planeF[1]*intersectionsFC[0][1])/planeF[2];
+                        double z2FC = (-dFConf - planeFConf[0]*intersectionsF[1][0] - planeFConf[1]*intersectionsF[1][1])/planeFConf[2];
+                        if((intersectionsFC[0][2]-z1F)<tol && (intersectionsF[1][2]-z2FC)<tol){
+                            trace.push_back(intersectionsFC[0]);
+                            trace.push_back(intersectionsF[1]);
+                            cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
+                            inter = true;
+
+
+                            /*if((intersectionsF[1][0]-intersectionsFC[1][0])<tol){
+                                cout << "la traccia è passante per la figura " << i << endl;
+                            }
+                            if((intersectionsFC[0][0] - intersectionsF[0][0])<tol){
+                                cout << "la traccia è passante per la figura " << id << endl;
+                            }*/
+
+                        }
+                        else{
+                            cout << id <<" e " << i << " in realtà non si intersecano sulla z" << endl;
                             continue;
                         }
-                        else if(intersectionsF[1][0] >= intersectionsFC[0][0] && intersectionsF[1][0]<= intersectionsFC[1][0]){
-                            double z1F = (-dF - planeF[0]*intersectionsFC[0][0] - planeF[1]*intersectionsFC[0][1])/planeF[2];
-                            double z2FC = (-dFConf - planeFConf[0]*intersectionsF[1][0] - planeFConf[1]*intersectionsF[1][1])/planeFConf[2];
-                            if((intersectionsFC[0][2]-z1F)<tol && (intersectionsF[1][2]-z2FC)<tol){
-                                trace.push_back(intersectionsFC[0]);
-                                trace.push_back(intersectionsF[1]);
-                                cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
-                            }
-                            else{
-                                cout << id <<" e " << i << " in realtà non si intersecano sulla z" << endl;
-                                continue;
-                            }
 
+                    }
+                    else if(intersectionsF[1][0]>=intersectionsFC[1][0]){
+                        double z1F = (-dF - planeF[0]*intersectionsFC[0][0] - planeF[1]*intersectionsFC[0][1])/planeF[2];
+                        double z2F = (-dF - planeF[0]*intersectionsFC[1][0] - planeF[1]*intersectionsFC[1][1])/planeF[2];
+                        if((intersectionsFC[0][2]-z1F)<tol && (intersectionsFC[1][2]-z2F)<tol){
+                            trace.push_back(intersectionsFC[0]);
+                            trace.push_back(intersectionsFC[1]);
+                            cout << "LE DUE FIGURE " << id <<" e " << i <<" SI INTERSECANO" << endl;
+                            inter = true;
+                            //cout << "la traccia e' passante per la figura " << i << endl;
                         }
-                        else if(intersectionsF[1][0]>=intersectionsFC[1][0]){
-                            double z1F = (-dF - planeF[0]*intersectionsFC[0][0] - planeF[1]*intersectionsFC[0][1])/planeF[2];
-                            double z2F = (-dF - planeF[0]*intersectionsFC[1][0] - planeF[1]*intersectionsFC[1][1])/planeF[2];
-                            if((intersectionsFC[0][2]-z1F)<tol && (intersectionsFC[1][2]-z2F)<tol){
-                                trace.push_back(intersectionsFC[0]);
-                                trace.push_back(intersectionsFC[1]);
-                                cout << "LE DUE FIGURE " << id <<" e " << i <<" SI INTERSECANO" << endl;
-                            }
-                            else{
-                                cout << id <<" e " << i  << " in realtà non si intersecano sulla z" << endl;
-                                continue;
-                            }
-                        }
-
-                    }else{
-                        if(intersectionsFC[1][0]<intersectionsF[0][0]){
-                            cout <<"Le figure "<< id <<" e " << i << " non si intersecano" << endl;
+                        else{
+                            cout << id <<" e " << i  << " in realtà non si intersecano sulla z" << endl;
                             continue;
-                        }
-                        else if(intersectionsFC[1][0]>=intersectionsF[0][0] && intersectionsFC[1][0]<=intersectionsF[1][0]){
-                            double z1FC = (-dFConf - planeFConf[0]*intersectionsF[0][0] - planeFConf[1]*intersectionsF[0][1])/planeFConf[2];
-                            double z2F = (-dF - planeF[0]*intersectionsFC[1][0] - planeF[1]*intersectionsFC[1][1])/planeF[2];
-                            if((intersectionsF[0][2]-z1FC)<tol && (intersectionsFC[1][2]-z2F)<tol){
-                                trace.push_back(intersectionsF[0]);
-                                trace.push_back(intersectionsFC[1]);
-                                cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
-                            }
-                            else{
-                                cout << id <<" e " << i  << " in realtà non si intersecano sulla z" << endl;
-                                continue;
-                            }
-
-                        }
-                        else if(intersectionsFC[1][0]>=intersectionsF[1][0]){
-                            double z1FC = (-dFConf - planeFConf[0]*intersectionsF[0][0] - planeFConf[1]*intersectionsF[0][1])/planeFConf[2];
-                            double z2FC = (-dFConf - planeFConf[0]*intersectionsF[1][0] - planeFConf[1]*intersectionsF[1][1])/planeFConf[2];
-                            if((intersectionsF[0][2]-z1FC)<tol && (intersectionsF[1][2]-z2FC)<tol){
-                                trace.push_back(intersectionsF[0]);
-                                trace.push_back(intersectionsF[1]);
-                                cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
-                            }
-                            else{
-                                cout << id <<" e " << i  << " in realtà non si intersecano sulla z" << endl;
-                                continue;
-                            }
-
                         }
                     }
 
-               // }
+                }else{
+                    if(intersectionsFC[1][0]<intersectionsF[0][0]){
+                        cout <<"Le figure "<< id <<" e " << i << " non si intersecano" << endl;
+                        continue;
+                    }
+                    else if(intersectionsFC[1][0]>=intersectionsF[0][0] && intersectionsFC[1][0]<=intersectionsF[1][0]){
+                        double z1FC = (-dFConf - planeFConf[0]*intersectionsF[0][0] - planeFConf[1]*intersectionsF[0][1])/planeFConf[2];
+                        double z2F = (-dF - planeF[0]*intersectionsFC[1][0] - planeF[1]*intersectionsFC[1][1])/planeF[2];
+                        if((intersectionsF[0][2]-z1FC)<tol && (intersectionsFC[1][2]-z2F)<tol){
+                            trace.push_back(intersectionsF[0]);
+                            trace.push_back(intersectionsFC[1]);
+                            cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
+                            inter = true;
 
-                /*else{
-                    Vector2d coeff = PALUSolver(A2, b2); //controlla b2
-                    if(coeff[0]>=0 && coeff[0]<=1 && coeff[1]>=0 && coeff[1]<=1){ //controllo che il punto di intersezione sia interno ai segmenti
-                    Vector2d pIn(intersectionsF[0][0] + coeff[0]*(intersectionsF[1][0] - intersectionsF[0][0]),
-                                     intersectionsF[0][1] + coeff[1]*(intersectionsF[1][1] - intersectionsF[0][1]));
-
-                            //controllo che anche la coordinata z sia comune
+                           // if()
+                        }
+                        else{
+                            cout << id <<" e " << i  << " in realtà non si intersecano sulla z" << endl;
+                            continue;
+                        }
 
                     }
-                }*/
+                    else if(intersectionsFC[1][0]>=intersectionsF[1][0]){
+                        double z1FC = (-dFConf - planeFConf[0]*intersectionsF[0][0] - planeFConf[1]*intersectionsF[0][1])/planeFConf[2];
+                        double z2FC = (-dFConf - planeFConf[0]*intersectionsF[1][0] - planeFConf[1]*intersectionsF[1][1])/planeFConf[2];
+                        if((intersectionsF[0][2]-z1FC)<tol && (intersectionsF[1][2]-z2FC)<tol){
+                            trace.push_back(intersectionsF[0]);
+                            trace.push_back(intersectionsF[1]);
+                            cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
+                            inter = true;
+                            //cout << "la traccia e' passante per la figura " << i << endl;
+                        }
+                        else{
+                            cout << id <<" e " << i  << " in realtà non si intersecano sulla z" << endl;
+                            continue;
+                        }
+                    }
+                }
+
             }
-            //cout << endl;
+
+            if(inter){
+                Trace newTrace;
+                newTrace.coordTrace.resize(2);
+                newTrace.coordTrace = trace;
+                mesh.vecTrace.push_back(newTrace);
+
+                vector<bool> interLatiF(2,false);
+                //interLatiF.resize(2);
+                //interLatiF(false,false);
+
+                vector<bool> interLatiFC(2,false);
+                //interLatiFC.resize(2);
+                //interLatiFC(false,false);
+
+
+                //ciclo su tutti i lati di entrambi i poligoni per capire se gli estrami della traccia appartengono ai lati, ovvero se la traccia è passante
+                for(unsigned int k = 0; k<2; k++){
+                    Vector3d punto = newTrace.coordTrace[k];
+                    for(unsigned int j = 0; j<4; j++){
+                        Vector3d rettaF;
+                        Vector3d rettaFC;
+                        int vert0 = j;
+                        int vert1;
+                        if(j<3){
+                            vert1 = j+1;
+                        }
+                        else{
+                            vert1 = j-3;
+                        }
+                        rettaF[0]=f.vertices[vert1][0]-f.vertices[vert0][0];
+                        rettaF[1]=f.vertices[vert1][1]-f.vertices[vert0][1];
+                        rettaF[2]=f.vertices[vert1][2]-f.vertices[vert0][2];
+                        rettaFC[0]=fConf.vertices[vert1][0]-fConf.vertices[vert0][0];
+                        rettaFC[1]=fConf.vertices[vert1][1]-fConf.vertices[vert0][1];
+                        rettaFC[2]=fConf.vertices[vert1][2]-fConf.vertices[vert0][2];
+
+
+                        if(punto[0]*rettaF[0] + punto[1]*rettaF[1] + punto[2]*rettaF[2]<tol){
+                            if(punto[0]>=min(f.vertices[vert1][0],f.vertices[vert0][0]) - tol && punto[1]>=min(f.vertices[vert1][1],f.vertices[vert0][1])-tol && punto[2]>=min(f.vertices[vert1][2],f.vertices[vert0][2])-tol &&
+                                punto[0]<=max(f.vertices[vert1][0],f.vertices[vert0][0])+tol && punto[1]<=max(f.vertices[vert1][1],f.vertices[vert0][1])+tol && punto[2]<=max(f.vertices[vert1][2],f.vertices[vert0][2])+tol){
+                                interLatiF[k] = true;
+                            }
+                        }
+                        if(punto[0]*rettaFC[0] + punto[1]*rettaFC[1] + punto[2]*rettaFC[2]<tol){
+                            if(punto[0]>=min(fConf.vertices[vert0][0],fConf.vertices[vert1][0]) - tol && punto[1]>=min(fConf.vertices[vert0][1],fConf.vertices[vert1][1])-tol && punto[2]>=min(fConf.vertices[vert0][2],fConf.vertices[vert1][2])-tol &&
+                                punto[0]<=max(fConf.vertices[vert1][0],fConf.vertices[vert0][0])+tol && punto[1]<=max(fConf.vertices[vert1][1],fConf.vertices[vert0][1])+tol && punto[2]<=max(fConf.vertices[vert1][2],fConf.vertices[vert0][2])+tol){
+                                interLatiFC[k] = true;
+                            }
+                        }
+                    }
+                }
+
+                if(interLatiF[0] && interLatiF[1]){
+                    newTrace.fracturesTrace.insert({id, true});
+                    cout << "figura " << id << " e' passante"<< endl;
+                }
+                else{
+                    newTrace.fracturesTrace.insert({id, false});
+                }
+
+                if(interLatiFC[0] && interLatiFC[1]){
+                    newTrace.fracturesTrace.insert({i, true});
+                    cout << "figura " << i << " e' passante"<<endl;
+                }
+                else{
+                    newTrace.fracturesTrace.insert({i, false});
+                }
+
+            }
         }
 
     }

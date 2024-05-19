@@ -11,6 +11,8 @@ using namespace Eigen;
 
 namespace FractureLibrary
 {
+
+// singola frattura
 struct Fracture
 {
     unsigned int id = 0;
@@ -20,6 +22,15 @@ struct Fracture
     map<unsigned int, vector<Vector3d>> Intersections = {};
 
 };
+
+// singola traccia condivisa da due fratture
+struct Trace
+{
+    map<unsigned int, bool> fracturesTrace ={};
+    vector<Vector3d> coordTrace = {};
+
+};
+
 
 // struttura mesh poligonale
 struct FractureMesh
@@ -33,6 +44,8 @@ struct FractureMesh
     map<unsigned int, Fracture> MapFractures = {}; // potresti cambiare con freactures
     //vector<Fracture> MapFractures = {};
     //vector<Vector3d<double>> CoordinatesFractures = {};
+    vector<Trace> vecTrace = {};
+
 
 };
 
