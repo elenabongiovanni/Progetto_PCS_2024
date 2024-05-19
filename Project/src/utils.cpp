@@ -450,9 +450,10 @@ namespace FractureLibrary {
                 //ciclo su tutti i lati di entrambi i poligoni per capire se gli estrami della traccia appartengono ai lati, ovvero se la traccia è passante
                 for(unsigned int k = 0; k<2; k++){
                     Vector3d punto = newTrace.coordTrace[k];
+
                     for(unsigned int j = 0; j<4; j++){
-                        Vector3d rettaF;
-                        Vector3d rettaFC;
+                        Vector4d rettaF;
+                        Vector4d rettaFC;
                         int vert0 = j;
                         int vert1;
                         if(j<3){
@@ -464,20 +465,23 @@ namespace FractureLibrary {
                         rettaF[0]=f.vertices[vert1][0]-f.vertices[vert0][0];
                         rettaF[1]=f.vertices[vert1][1]-f.vertices[vert0][1];
                         rettaF[2]=f.vertices[vert1][2]-f.vertices[vert0][2];
+                        rettaF[3]=-(rettaF[0]*f.vertices[vert0][0] + rettaF[1]*f.vertices[vert0][1] +rettaF[2]*f.vertices[vert0][2]);
+
                         rettaFC[0]=fConf.vertices[vert1][0]-fConf.vertices[vert0][0];
                         rettaFC[1]=fConf.vertices[vert1][1]-fConf.vertices[vert0][1];
                         rettaFC[2]=fConf.vertices[vert1][2]-fConf.vertices[vert0][2];
+                        rettaFC[3]=-(rettaFC[0]*fConf.vertices[vert0][0] + rettaFC[1]*fConf.vertices[vert0][1] +rettaFC[2]*fConf.vertices[vert0][2]);
 
 
-                        if(punto[0]*rettaF[0] + punto[1]*rettaF[1] + punto[2]*rettaF[2]<tol){
-                            if(punto[0]>=min(f.vertices[vert1][0],f.vertices[vert0][0]) - tol && punto[1]>=min(f.vertices[vert1][1],f.vertices[vert0][1])-tol && punto[2]>=min(f.vertices[vert1][2],f.vertices[vert0][2])-tol &&
-                                punto[0]<=max(f.vertices[vert1][0],f.vertices[vert0][0])+tol && punto[1]<=max(f.vertices[vert1][1],f.vertices[vert0][1])+tol && punto[2]<=max(f.vertices[vert1][2],f.vertices[vert0][2])+tol){
+                        if(punto[0]*rettaF[0] + punto[1]*rettaF[1] + punto[2]*rettaF[2] + rettaF[3] < tol){
+                            if((punto[0] -min(f.vertices[vert1][0],f.vertices[vert0][0]))>-tol && (punto[1]-min(f.vertices[vert1][1],f.vertices[vert0][1]))>-tol && (punto[2]-min(f.vertices[vert1][2],f.vertices[vert0][2]))>-tol &&
+                                (punto[0]-max(f.vertices[vert1][0],f.vertices[vert0][0])<tol) && (punto[1]-max(f.vertices[vert1][1],f.vertices[vert0][1])<tol) && (punto[2]-max(f.vertices[vert1][2],f.vertices[vert0][2])<tol)){
                                 interLatiF[k] = true;
                             }
                         }
-                        if(punto[0]*rettaFC[0] + punto[1]*rettaFC[1] + punto[2]*rettaFC[2]<tol){
-                            if(punto[0]>=min(fConf.vertices[vert0][0],fConf.vertices[vert1][0]) - tol && punto[1]>=min(fConf.vertices[vert0][1],fConf.vertices[vert1][1])-tol && punto[2]>=min(fConf.vertices[vert0][2],fConf.vertices[vert1][2])-tol &&
-                                punto[0]<=max(fConf.vertices[vert1][0],fConf.vertices[vert0][0])+tol && punto[1]<=max(fConf.vertices[vert1][1],fConf.vertices[vert0][1])+tol && punto[2]<=max(fConf.vertices[vert1][2],fConf.vertices[vert0][2])+tol){
+                        if(punto[0]*rettaFC[0] + punto[1]*rettaFC[1] + punto[2]*rettaFC[2] + rettaFC[3] < tol){
+                            if(punto[0]>=(min(fConf.vertices[vert0][0],fConf.vertices[vert1][0])-tol) && punto[1]>=(min(fConf.vertices[vert0][1],fConf.vertices[vert1][1])-tol) && punto[2]>=(min(fConf.vertices[vert0][2],fConf.vertices[vert1][2])-tol) &&
+                                punto[0]<=(max(fConf.vertices[vert1][0],fConf.vertices[vert0][0])+tol) && punto[1]<=(max(fConf.vertices[vert1][1],fConf.vertices[vert0][1])+tol) && punto[2]<=(max(fConf.vertices[vert1][2],fConf.vertices[vert0][2])+tol)){
                                 interLatiFC[k] = true;
                             }
                         }
