@@ -10,9 +10,9 @@ using namespace Eigen;
 
 namespace FractureLibrary {
 
-    VectorXd PALUSolver(const MatrixXd& a,
-                    const VectorXd& b)
-    {
+    double tol = 10 * numeric_limits<double>::epsilon();
+
+    VectorXd PALUSolver(const MatrixXd& a, const VectorXd& b){
         VectorXd solutionPALU = a.fullPivLu().solve(b);
         return solutionPALU;
 
@@ -43,6 +43,19 @@ namespace FractureLibrary {
         }
         return r;
     }
+
+    //controllo se un punto appartiene ad un segmento
+    bool onSegment(const Vector3d& p, const Vector3d& a, const Vector3d& b){
+        double t = (p[0] - a[0])/(b[0]-a[0]);
+        if((t<0.0)||(t>1.0)){
+            return false;
+        }
+        double y = a[1] + t*(b[1]-a[1]);
+        double z = a[2] + t*(b[2]-a[2]);
+        return abs(p[1]-y)<tol && abs(p[2]-z)<tol;
+    }
+
+
 
     // importo i dati dai file ( va bene per tutti questa funzione!!!!
     bool ImportFR_data(const string &filename,
@@ -125,9 +138,8 @@ namespace FractureLibrary {
     }
 
     void findIntersections(const unsigned int &id, FractureMesh &mesh){
-        double tol = 10 * numeric_limits<double>::epsilon();
         mesh.vecTrace.reserve(mesh.NumFractures*(mesh.NumFractures-1));
-        Fracture f = mesh.MapFractures.at(id);
+        Fracture &f = mesh.MapFractures.at(id);
         Vector3d lato1F;
         Vector3d lato2F;
         //calcolo 2 lati
@@ -151,11 +163,10 @@ namespace FractureLibrary {
             vector<Vector3d> trace;
             trace.resize(2);
 
-            Fracture fConf = mesh.MapFractures.at(i);
+            Fracture &fConf = mesh.MapFractures.at(i);
 
             Vector3d lato1FConf;
             Vector3d lato2FConf;
-
             for(unsigned int j =0; j<3; j++){
                 lato1FConf[j] = fConf.vertices[1][j] - fConf.vertices[0][j];
                 lato2FConf[j] = fConf.vertices[3][j] - fConf.vertices[0][j];
@@ -209,25 +220,19 @@ namespace FractureLibrary {
                 }
 
                 Vector3d p = PALUSolver(A, b);
-                //cout << "punto p di intersezione: " << p[0] << " " <<p[1] << " " << p[2] << endl;
-
-                //bool onEdgeF = false;
-                //bool onEdgeFC = false;
 
                 //calcolo le interseioni dei lati della fracture con la retta di interseione dei piani
                 vector<Vector3d> intersectionsF;
                 intersectionsF.reserve(2);
                 for(unsigned int l = 0; l < f.NumVertices; l++){
                     Matrix2d A1;
-                    int vert0 = l;
-                    int vert1;
+                    unsigned int &vert0 = l;
+                    unsigned int vert1 = l+1;
 
-                    if(l<f.NumVertices-1){
-                        vert1 = l +1;
+                    if(l==f.NumVertices-1){
+                        vert1 = l-(f.NumVertices-1);
                     }
-                    else{
-                        vert1 = l-3;
-                    }
+
                     Vector2d r1(f.vertices[vert1][0] - f.vertices[vert0][0], t[0]);
                     Vector2d r2(f.vertices[vert1][1] - f.vertices[vert0][1], t[1]);
                     A1.row(0) = r1;
@@ -235,7 +240,6 @@ namespace FractureLibrary {
 
                     if(A1.determinant()==0){ // il lato e retta di intersezione tra i piani sono paralleli oppure sovrapposto
                         if((f.vertices[vert0][0]-p[0])/t[0] == (f.vertices[vert0][1]-p[1])/t[1]){ //questo dovrebbe dirmi se stanno sulla stessa retta
-                            //onEdgeF = true;
                             Vector3d v1(f.vertices[vert0][0],f.vertices[vert0][1], f.vertices[vert0][2]);
                             Vector3d v2(f.vertices[vert1][0],f.vertices[vert1][1], f.vertices[vert1][2]);
                             intersectionsF.push_back(v1);
@@ -253,7 +257,6 @@ namespace FractureLibrary {
                         Vector2d coeff = PALUSolver(A1, b1);
 
                         if(coeff[0]>=0 && coeff[0]<=1){ //controllo che l'intersezione sia interna al lato del poligono (combinazione convessa)
-                            //cout<<"entra qui"<<endl;
                             Vector3d v;
                             v[0] = f.vertices[vert0][0] + coeff[0]*(f.vertices[vert1][0] - f.vertices[vert0][0]);
                             v[1] = f.vertices[vert0][1] + coeff[0]*(f.vertices[vert1][1] - f.vertices[vert0][1]);
@@ -280,25 +283,21 @@ namespace FractureLibrary {
                 intersectionsFC.reserve(2);
                 for(unsigned int l = 0; l < fConf.NumVertices; l++){
                     Matrix2d A1;
-                    int vert0 = l;
-                    int vert1;
+                    unsigned int &vert0 = l;
+                    unsigned int vert1 = l+1;
 
-                    if(l<fConf.NumVertices-1){
-                        vert1 = l+1;
+                    if(l==fConf.NumVertices-1){
+                        vert1 = l-(fConf.NumVertices-1);
                     }
-                    else{
-                        vert1 = l-3;
-                    }
+
                     Vector2d r1(fConf.vertices[vert1][0] - fConf.vertices[vert0][0], t[0]);
                     Vector2d r2(fConf.vertices[vert1][1] - fConf.vertices[vert0][1], t[1]);
-                    //cout << r1[0] << " " << r2[0] << endl;
                     A1.row(0) = r1;
                     A1.row(1) = r2;
 
                     if(A1.determinant()==0){
-                        //cout << "det = 0";
+
                         if((fConf.vertices[vert0][0]-p[0])/t[0] == (fConf.vertices[vert0][1]-p[1])/t[1]){
-                            //onEdgeFC = true;
                             Vector3d v1(fConf.vertices[vert0][0],fConf.vertices[vert0][1], fConf.vertices[vert0][2]);
                             Vector3d v2(fConf.vertices[vert1][0],fConf.vertices[vert1][1], fConf.vertices[vert1][2]);
                             intersectionsFC.push_back(v1);
@@ -355,18 +354,10 @@ namespace FractureLibrary {
                         double z1F = (-dF - planeF[0]*intersectionsFC[0][0] - planeF[1]*intersectionsFC[0][1])/planeF[2];
                         double z2FC = (-dFConf - planeFConf[0]*intersectionsF[1][0] - planeFConf[1]*intersectionsF[1][1])/planeFConf[2];
                         if((intersectionsFC[0][2]-z1F)<tol && (intersectionsF[1][2]-z2FC)<tol){
-                            trace.push_back(intersectionsFC[0]);
-                            trace.push_back(intersectionsF[1]);
+                            trace[0]=intersectionsFC[0];
+                            trace[1]=intersectionsF[1];
                             cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
                             inter = true;
-
-
-                            /*if((intersectionsF[1][0]-intersectionsFC[1][0])<tol){
-                                cout << "la traccia è passante per la figura " << i << endl;
-                            }
-                            if((intersectionsFC[0][0] - intersectionsF[0][0])<tol){
-                                cout << "la traccia è passante per la figura " << id << endl;
-                            }*/
 
                         }
                         else{
@@ -379,11 +370,10 @@ namespace FractureLibrary {
                         double z1F = (-dF - planeF[0]*intersectionsFC[0][0] - planeF[1]*intersectionsFC[0][1])/planeF[2];
                         double z2F = (-dF - planeF[0]*intersectionsFC[1][0] - planeF[1]*intersectionsFC[1][1])/planeF[2];
                         if((intersectionsFC[0][2]-z1F)<tol && (intersectionsFC[1][2]-z2F)<tol){
-                            trace.push_back(intersectionsFC[0]);
-                            trace.push_back(intersectionsFC[1]);
+                            trace[0]=intersectionsFC[0];
+                            trace[1]=intersectionsFC[1];
                             cout << "LE DUE FIGURE " << id <<" e " << i <<" SI INTERSECANO" << endl;
                             inter = true;
-                            //cout << "la traccia e' passante per la figura " << i << endl;
                         }
                         else{
                             cout << id <<" e " << i  << " in realtà non si intersecano sulla z" << endl;
@@ -400,12 +390,11 @@ namespace FractureLibrary {
                         double z1FC = (-dFConf - planeFConf[0]*intersectionsF[0][0] - planeFConf[1]*intersectionsF[0][1])/planeFConf[2];
                         double z2F = (-dF - planeF[0]*intersectionsFC[1][0] - planeF[1]*intersectionsFC[1][1])/planeF[2];
                         if((intersectionsF[0][2]-z1FC)<tol && (intersectionsFC[1][2]-z2F)<tol){
-                            trace.push_back(intersectionsF[0]);
-                            trace.push_back(intersectionsFC[1]);
+                            trace[0]=(intersectionsF[0]);
+                            trace[1]=(intersectionsFC[1]);
                             cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
                             inter = true;
 
-                           // if()
                         }
                         else{
                             cout << id <<" e " << i  << " in realtà non si intersecano sulla z" << endl;
@@ -417,11 +406,10 @@ namespace FractureLibrary {
                         double z1FC = (-dFConf - planeFConf[0]*intersectionsF[0][0] - planeFConf[1]*intersectionsF[0][1])/planeFConf[2];
                         double z2FC = (-dFConf - planeFConf[0]*intersectionsF[1][0] - planeFConf[1]*intersectionsF[1][1])/planeFConf[2];
                         if((intersectionsF[0][2]-z1FC)<tol && (intersectionsF[1][2]-z2FC)<tol){
-                            trace.push_back(intersectionsF[0]);
-                            trace.push_back(intersectionsF[1]);
+                            trace[0]=(intersectionsF[0]);
+                            trace[1]=(intersectionsF[1]);
                             cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
                             inter = true;
-                            //cout << "la traccia e' passante per la figura " << i << endl;
                         }
                         else{
                             cout << id <<" e " << i  << " in realtà non si intersecano sulla z" << endl;
@@ -436,54 +424,34 @@ namespace FractureLibrary {
                 Trace newTrace;
                 newTrace.coordTrace.resize(2);
                 newTrace.coordTrace = trace;
-                mesh.vecTrace.push_back(newTrace);
+                mesh.vecTrace.push_back(newTrace);              
 
                 vector<bool> interLatiF(2,false);
-                //interLatiF.resize(2);
-                //interLatiF(false,false);
-
                 vector<bool> interLatiFC(2,false);
-                //interLatiFC.resize(2);
-                //interLatiFC(false,false);
-
 
                 //ciclo su tutti i lati di entrambi i poligoni per capire se gli estrami della traccia appartengono ai lati, ovvero se la traccia è passante
                 for(unsigned int k = 0; k<2; k++){
-                    Vector3d punto = newTrace.coordTrace[k];
+                    Vector3d &punto = newTrace.coordTrace[k];
 
-                    for(unsigned int j = 0; j<4; j++){
-                        Vector4d rettaF;
-                        Vector4d rettaFC;
-                        int vert0 = j;
-                        int vert1;
-                        if(j<3){
-                            vert1 = j+1;
+                    for(unsigned int j = 0; j<f.NumVertices; j++){
+                        unsigned int &vert0 = j;
+                        unsigned int vert1 = j+1;
+                        if(j==f.NumVertices-1){
+                            vert1 = j-(f.NumVertices-1);
                         }
-                        else{
-                            vert1 = j-3;
+                        if(onSegment(punto,f.vertices[vert0],f.vertices[vert1])){
+                            interLatiF[k] = true;
+                        }                       
+                    }
+
+                    for(unsigned int j = 0; j<fConf.NumVertices; j++){
+                        unsigned int &vert0 = j;
+                        unsigned int vert1 = j+1;
+                        if(j==fConf.NumVertices-1){
+                            vert1 = j-(fConf.NumVertices-1);
                         }
-                        rettaF[0]=f.vertices[vert1][0]-f.vertices[vert0][0];
-                        rettaF[1]=f.vertices[vert1][1]-f.vertices[vert0][1];
-                        rettaF[2]=f.vertices[vert1][2]-f.vertices[vert0][2];
-                        rettaF[3]=-(rettaF[0]*f.vertices[vert0][0] + rettaF[1]*f.vertices[vert0][1] +rettaF[2]*f.vertices[vert0][2]);
-
-                        rettaFC[0]=fConf.vertices[vert1][0]-fConf.vertices[vert0][0];
-                        rettaFC[1]=fConf.vertices[vert1][1]-fConf.vertices[vert0][1];
-                        rettaFC[2]=fConf.vertices[vert1][2]-fConf.vertices[vert0][2];
-                        rettaFC[3]=-(rettaFC[0]*fConf.vertices[vert0][0] + rettaFC[1]*fConf.vertices[vert0][1] +rettaFC[2]*fConf.vertices[vert0][2]);
-
-
-                        if(punto[0]*rettaF[0] + punto[1]*rettaF[1] + punto[2]*rettaF[2] + rettaF[3] < tol){
-                            if((punto[0] -min(f.vertices[vert1][0],f.vertices[vert0][0]))>-tol && (punto[1]-min(f.vertices[vert1][1],f.vertices[vert0][1]))>-tol && (punto[2]-min(f.vertices[vert1][2],f.vertices[vert0][2]))>-tol &&
-                                (punto[0]-max(f.vertices[vert1][0],f.vertices[vert0][0])<tol) && (punto[1]-max(f.vertices[vert1][1],f.vertices[vert0][1])<tol) && (punto[2]-max(f.vertices[vert1][2],f.vertices[vert0][2])<tol)){
-                                interLatiF[k] = true;
-                            }
-                        }
-                        if(punto[0]*rettaFC[0] + punto[1]*rettaFC[1] + punto[2]*rettaFC[2] + rettaFC[3] < tol){
-                            if(punto[0]>=(min(fConf.vertices[vert0][0],fConf.vertices[vert1][0])-tol) && punto[1]>=(min(fConf.vertices[vert0][1],fConf.vertices[vert1][1])-tol) && punto[2]>=(min(fConf.vertices[vert0][2],fConf.vertices[vert1][2])-tol) &&
-                                punto[0]<=(max(fConf.vertices[vert1][0],fConf.vertices[vert0][0])+tol) && punto[1]<=(max(fConf.vertices[vert1][1],fConf.vertices[vert0][1])+tol) && punto[2]<=(max(fConf.vertices[vert1][2],fConf.vertices[vert0][2])+tol)){
-                                interLatiFC[k] = true;
-                            }
+                        if(onSegment(punto,fConf.vertices[vert0],fConf.vertices[vert1])){
+                            interLatiFC[k] = true;
                         }
                     }
                 }

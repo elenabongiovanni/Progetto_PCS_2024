@@ -20,6 +20,7 @@ struct Fracture
     vector<Vector3d> vertices = {};
     Vector3d barycentre = {};
     map<unsigned int, vector<Vector3d>> Intersections = {};
+    //metti struttura dati ordinabile a poco costo
 
 };
 
