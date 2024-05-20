@@ -20,7 +20,9 @@ struct Fracture
     vector<Vector3d> vertices = {};
     Vector3d barycentre = {};
     map<unsigned int, vector<Vector3d>> Intersections = {};
-    //metti struttura dati ordinabile a poco costo
+    //metti strutture dati ordinabile a poco costo
+      //traccepassanti
+      //tracceNONpassanti
 
 };
 
@@ -29,6 +31,7 @@ struct Trace
 {
     map<unsigned int, bool> fracturesTrace ={};
     vector<Vector3d> coordTrace = {};
+    double len = 0.0;
 
 };
 
