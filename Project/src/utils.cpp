@@ -162,6 +162,8 @@ namespace FractureLibrary {
             bool inter = false;
             vector<Vector3d> trace;
             trace.resize(2);
+            double distanzainF = 0;
+            double distanzainFC = 0;
 
             Fracture &fConf = mesh.MapFractures.at(i);
 
@@ -417,16 +419,37 @@ namespace FractureLibrary {
                         }
                     }
                 }
-
+                if(inter){
+                    distanzainF = dist(intersectionsF[0],intersectionsF[1]);
+                    double distanzainF = 0;
+                    double distanzainFC = 0;distanzainFC = dist(intersectionsFC[0], intersectionsFC[1]);
+                }
             }
 
             if(inter){
                 Trace newTrace;
                 newTrace.coordTrace.resize(2);
                 newTrace.coordTrace = trace;
-                mesh.vecTrace.push_back(newTrace);              
+                double lunghezzatraccia = dist(trace[0],trace[1]);
+                newTrace.len = lunghezzatraccia;
+                mesh.vecTrace.push_back(newTrace);
 
-                vector<bool> interLatiF(2,false);
+                if((lunghezzatraccia-distanzainF)<tol){
+                    cout << "figura " << id << " e' passante"<< endl;
+                    f.listPas.push_back(newTrace);
+
+                }else{
+                    f.listNonpas.push_back(newTrace);
+                }
+
+                if((lunghezzatraccia-distanzainFC)<tol){
+                    cout << "figura " << i << " e' passante"<<endl;
+                    fConf.listPas.push_back(newTrace);
+                }else{
+                    fConf.listPas.push_back(newTrace);
+                }
+            }
+                /*vector<bool> interLatiF(2,false);
                 vector<bool> interLatiFC(2,false);
 
                 //ciclo su tutti i lati di entrambi i poligoni per capire se gli estrami della traccia appartengono ai lati, ovvero se la traccia è passante
@@ -456,12 +479,16 @@ namespace FractureLibrary {
                     }
                 }
 
+
                 if(interLatiF[0] && interLatiF[1]){
                     newTrace.fracturesTrace.insert({id, true});
                     cout << "figura " << id << " e' passante"<< endl;
+                    if()
+                    f.listPas.push_back(newTrace);
                 }
                 else{
                     newTrace.fracturesTrace.insert({id, false});
+                    f.listNonpas.push
                 }
 
                 if(interLatiFC[0] && interLatiFC[1]){
@@ -472,7 +499,7 @@ namespace FractureLibrary {
                     newTrace.fracturesTrace.insert({i, false});
                 }
 
-            }
+            }*/
         }
 
     }

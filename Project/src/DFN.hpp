@@ -12,6 +12,16 @@ using namespace Eigen;
 namespace FractureLibrary
 {
 
+// singola traccia condivisa da due fratture
+struct Trace
+{
+    map<unsigned int, bool> fracturesTrace ={};
+    vector<Vector3d> coordTrace = {};
+    double len = 0.0;
+
+};
+
+
 // singola frattura
 struct Fracture
 {
@@ -19,19 +29,14 @@ struct Fracture
     unsigned int NumVertices = 0;
     vector<Vector3d> vertices = {};
     Vector3d barycentre = {};
-    map<unsigned int, vector<Vector3d>> Intersections = {};
-    //metti strutture dati ordinabile a poco costo
+    //map<unsigned int, vector<Vector3d>> Intersections = {};
+    //metti strutture dati ordinabile a poco costo  (quicksort?)
       //traccepassanti
       //tracceNONpassanti
-
-};
-
-// singola traccia condivisa da due fratture
-struct Trace
-{
-    map<unsigned int, bool> fracturesTrace ={};
-    vector<Vector3d> coordTrace = {};
-    double len = 0.0;
+    list<Trace> listPas = {};
+    list<Trace> listNonpas = {};
+    vector<Trace> vecPas = {};
+    vector<Trace> vecNonpas = {};
 
 };
 
