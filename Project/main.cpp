@@ -4,15 +4,22 @@
 #include "dfn.hpp"
 #include "utils.hpp"
 #include <iomanip>
+#include <fstream>
 
 using namespace std;
 using namespace FractureLibrary;
 
-int main()
+int main(int argc, char ** argv)
 {
     FractureMesh mesh;
-    string filepath;
-    Fracture f;
+
+    if(argc == 1)
+        return 1;
+
+    istringstream str(argv[1]);
+    string name;
+    str >> name;
+    string filepath = "DFN/" + name + ".txt";
     //cout << "Insert filepath: ";    //scegli tra
                                     //DFN/FR3_data.txt
                                     //DFN/FR10_data.txt
@@ -22,8 +29,8 @@ int main()
                                     //DFN/FR362_data.txt
     //getline(cin, filepath);
 
-    if(!ImportFR_data("DFN/FR3_data.txt",mesh)){
-        return 1;
+    if(!ImportFR_data(filepath,mesh)){
+        return 2;
     }
 
     for(unsigned int i=0; i<mesh.NumFractures; i++){
@@ -48,10 +55,22 @@ int main()
     }*/
 
 
-    for(unsigned int i=0; i<mesh.NumFractures-1; i++){
-        findIntersections(i, mesh);
-        cout << endl;
+    //for(unsigned int i=0; i<mesh.NumFractures-1; i++){
+    findIntersections(mesh);
+    printingtraces(mesh, filepath);
+    printingfractures(mesh, filepath);
+
+    PolygonalMesh p = newpolygon(mesh);
+
+    /*for(unsigned int id: p.Cell0DId){
+        cout << id << " ";
     }
+    cout << endl;
+    cout<< p.numCell0D << endl;
+    cout<< p.numCell1D << endl;
+    cout<< p.numCell2D << endl;
+        //cout << endl;
+    //}
 
     /*for(unsigned int i=0; i<mesh.vecTrace.size(); i++){
         Trace t = mesh.vecTrace[i];

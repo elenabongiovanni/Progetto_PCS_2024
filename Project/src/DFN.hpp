@@ -15,9 +15,12 @@ namespace FractureLibrary
 // singola traccia condivisa da due fratture
 struct Trace
 {
-    map<unsigned int, bool> fracturesTrace ={};
+    Vector2i fraId = {};
+    //map<unsigned int, bool> fracturesTrace ={};
     vector<Vector3d> coordTrace = {};
     double len = 0.0;
+    unsigned int id;
+    Vector3d retta = {};
 
 };
 
@@ -29,14 +32,10 @@ struct Fracture
     unsigned int NumVertices = 0;
     vector<Vector3d> vertices = {};
     Vector3d barycentre = {};
-    //map<unsigned int, vector<Vector3d>> Intersections = {};
-    //metti strutture dati ordinabile a poco costo  (quicksort?)
-      //traccepassanti
-      //tracceNONpassanti
     list<Trace> listPas = {};
     list<Trace> listNonpas = {};
-    vector<Trace> vecPas = {};
-    vector<Trace> vecNonpas = {};
+    map<unsigned int, bool> tips = {};
+    unsigned int numFrac = 0;
 
 };
 
@@ -53,9 +52,28 @@ struct FractureMesh
     map<unsigned int, Fracture> MapFractures = {}; // potresti cambiare con freactures
     //vector<Fracture> MapFractures = {};
     //vector<Vector3d<double>> CoordinatesFractures = {};
-    vector<Trace> vecTrace = {};
+    //vector<Trace> vecTrace = {};
+    map<unsigned int, Trace> MapTrace = {};
 
 
+};
+
+struct PolygonalMesh
+{
+    unsigned int numFrac;
+
+    unsigned int numCell0D = 0;
+    list<unsigned int> Cell0DId = {};
+    map<unsigned int, Vector3d> MapCell0D = {};
+
+    unsigned int numCell1D = 0;
+    list<unsigned int> Cell1DId = {};
+    map<unsigned int, list<unsigned int>> MapCell1D = {};
+
+    unsigned int numCell2D = 0;
+    list<unsigned int> Cell2DId = {};
+    map<unsigned int, list<unsigned int>> MapCell2DVertices = {};
+    map<unsigned int, list<unsigned int>> MapCell2DEdges = {};
 };
 
 

@@ -8,21 +8,33 @@ using namespace Eigen;
 
 namespace FractureLibrary
 {
+    Vector3d calcoloPiano(const Fracture& f);
 
-VectorXd PALUSolver(const MatrixXd& a, const VectorXd& b);
+    vector<Vector3d> intersezionipoligonoretta(const Vector3d& t, const Vector3d p, const Fracture& f);
 
-bool compareFirstElement(const Vector3d& a, const Vector3d& b);
+    vector<Fracture> cuttingfractures(const Fracture& f, const Trace& t, PolygonalMesh& pm);
 
-double dist(Vector3d v1, Vector3d v2);
+    VectorXd PALUSolver(const MatrixXd& a, const VectorXd& b);
 
-double maxDist(Fracture f);
+    bool orderLen(const Trace &a, const Trace &b);
 
-bool onSegment(const Vector3d& p, const Vector3d& a, const Vector3d& b);
+    bool compareFirstElement(const Vector3d& a, const Vector3d& b);
 
-bool ImportFR_data(const string &filename, FractureMesh& mesh);
+    double dist(Vector3d v1, Vector3d v2);
 
-void findIntersections(const unsigned int &id, FractureMesh &mesh);
+    double maxDist(Fracture f);
 
+    bool onSegment(const Vector3d& p, const Vector3d& a, const Vector3d& b);
+
+    bool ImportFR_data(const string &filename, FractureMesh& mesh);
+
+    void findIntersections(FractureMesh &mesh);
+
+    void printingtraces(FractureMesh& mesh, const string& file);
+
+    void printingfractures(FractureMesh& mesh, const string& file);
+
+    PolygonalMesh newpolygon(FractureMesh& mesh);
 
 }
 #endif // UTILS_HPP

@@ -5,17 +5,238 @@
 #include <sstream>
 #include <Eigen/Eigen>
 #include <algorithm>
+#include <map>
+#include <iomanip>
 
+using namespace std;
 using namespace Eigen;
 
 namespace FractureLibrary {
 
     double tol = 10 * numeric_limits<double>::epsilon();
 
+    Vector3d calcoloPiano(const Fracture& f){
+        Vector3d lato1F = {};
+        Vector3d lato2F = {};
+        //calcolo 2 lati
+        for(unsigned int j =0; j<3; j++){
+            lato1F[j] = f.vertices[1][j] - f.vertices[0][j];
+            lato2F[j] = f.vertices[3][j] - f.vertices[0][j];
+        }
+        //normalizzo i lati
+        double lato1Fn = lato1F.squaredNorm();
+        double lato2Fn = lato2F.squaredNorm();
+        //calcolo il vettore normale e lo normalizzo
+        Vector3d planeF = {};
+        planeF[0] = (lato1F[1]*lato2F[2] - lato1F[2]*lato2F[1])/(lato1Fn*lato2Fn);
+        planeF[1] = (lato1F[2]*lato2F[0] - lato1F[0]*lato2F[2])/(lato1Fn*lato2Fn);
+        planeF[2] = (lato1F[0]*lato2F[1] - lato1F[1]*lato2F[0])/(lato1Fn*lato2Fn);
+        return planeF;
+    }
+
+    vector<Vector3d> intersezionipoligonoretta(const Vector3d& t, const Vector3d p, const Fracture& f){
+        vector<Vector3d> intersectionsF = {};
+        intersectionsF.reserve(2);
+        for(unsigned int l = 0; l < f.NumVertices; l++){
+            unsigned int &vert0 = l;
+            unsigned int vert1 = l+1;
+
+            if(l==f.NumVertices-1){
+                vert1 = l-(f.NumVertices-1);
+            }
+
+            Vector3d tr;
+            tr[0] = f.vertices[vert1][0] - f.vertices[vert0][0];
+            tr[1] = f.vertices[vert1][1] - f.vertices[vert0][1];
+            tr[2] = f.vertices[vert1][2] - f.vertices[vert0][2];
+
+            Vector3d prod_t_t1 = t.cross(tr);
+            Vector3d prod_t_p = (p-f.vertices[vert1]).cross(t);
+            //Vector3d prod_t1_p = (f.vertices[vert1]-p).cross(tr);
+
+            double alfa = (prod_t_p.dot(prod_t_t1))/(prod_t_t1.dot(prod_t_t1));
+            //double beta = (prod_t1_p.dot(prod_t_t1))/(prod_t_t1.dot(prod_t_t1));
+
+            if(alfa>=0 && alfa <=1){
+                Vector3d v;
+                for(unsigned int i=0; i<3; i++){
+                    v[i] = f.vertices[vert0][i]*alfa + (1-alfa)*f.vertices[vert1][i];
+                }
+                intersectionsF.push_back(v);
+            }
+
+            if(intersectionsF.size()==2){
+                //cout << "il primo poligono è tagliato" << endl;
+                break;  //esco dal ciclo perchè di nuovo non è posisbile che una retta intersechi un poligono in più di due punti
+            }           // potremmo anche mettere questo if fuori dall'else e levare il break prima , come ci piace di più
+        }
+        return intersectionsF;
+    }
+
+    vector<Fracture> cuttingfractures(const Fracture& f, const Trace& t, PolygonalMesh& pm){
+        vector<Fracture> newfractures = {};
+        newfractures.reserve(2);
+
+        /*cout<<"coordi f: " << f.vertices[0][0] << " " <<f.vertices[0][1] << " " <<f.vertices[0][2] << " " << endl;
+        cout << f.vertices[1][0] << " " <<f.vertices[1][1] << " " <<f.vertices[1][2] << " " << endl;
+        cout << f.vertices[2][0] << " " <<f.vertices[2][1] << " " <<f.vertices[2][2] << " " << endl;
+        cout << f.vertices[3][0] << " " <<f.vertices[3][1] << " " <<f.vertices[3][2] << " " << endl;*/
+        /*Vector3d retta;
+        for(unsigned int i =0; i<3; i++){
+            retta[i] = t.coordTrace[1][i] - t.coordTrace[0][i];
+            cout << t.coordTrace[1][i]<< endl;
+            cout << t.coordTrace[0][i]<< endl;
+            cout << retta[i] << endl;
+
+        }*/
+
+        vector<Vector3d> coordt = intersezionipoligonoretta(t.retta, t.coordTrace[1], f);
+        if(coordt.size()==0){
+            newfractures.push_back(f);
+            return newfractures;
+        }
+
+        //cout << coordt[0][0] << " " << coordt[0][1]<< " " << coordt[0][2] << endl;
+        //cout << coordt[1][0] << " " << coordt[1][1]<< " " << coordt[1][2] << endl;
+
+        list<Vector3d> newVert;
+        //newVert.reserve(f.NumVertices+2);
+        for(const Vector3d& cv: f.vertices){
+            newVert.push_back(cv);
+        }
+        Vector2i posPunti= {-1, -1};
+        unsigned int index = 0;
+        for(Vector3d &punto: coordt){
+
+            for(unsigned int l = 0; l<f.NumVertices; l++){
+                unsigned int &vert0 = l;
+                unsigned int vert1 = l+1;
+                if(l==f.NumVertices-1){
+                    vert1 = l-(f.NumVertices-1);
+                }
+                for(unsigned int i=0; i<3; i++){
+                    if(punto[i]<tol)
+                        punto[i]=0;
+                }
+                if(onSegment(punto, f.vertices[vert0], f.vertices[vert1])){
+                    if(f.vertices[vert0][0]==punto[0] && f.vertices[vert0][1]==punto[1] && f.vertices[vert0][2]==punto[2])
+                        posPunti[index] = vert0;
+                    else if(f.vertices[vert1][0]==punto[0] && f.vertices[vert1][1]==punto[1] && f.vertices[vert1][2]==punto[2])
+                        posPunti[index] = vert1;
+                    else{
+                        //cout << "siamo nel lato " << vert0 << "-" << vert1 << endl;
+                        auto it = newVert.begin();
+                        unsigned int pos;
+                        if(index==0)
+                            pos = vert0+1;
+                        if(index==1)
+                            pos = vert0+2;
+                        advance(it, pos);
+                        newVert.insert(it, punto);
+                        posPunti[index] = pos;
+                    }
+                break;
+                }
+            }
+            index++;
+        }
+
+        Fracture newFrac1;
+        Fracture newFrac2;
+        newFrac1.NumVertices = posPunti[1] - posPunti[0] + 1;
+        newFrac1.vertices.resize(newFrac1.NumVertices);
+        newFrac2.NumVertices = newVert.size() - newFrac1.NumVertices + 2;
+        newFrac2.vertices.resize(newFrac2.NumVertices);
+        /*unsigned int idPunto0;
+        unsigned int idPunto1;
+        unsigned int idEdgeCut;*/
+
+        vector<Vector3d> newVertVec;
+        newVertVec.resize(newVert.size());
+        unsigned int i=0;
+        for(const Vector3d& v3: newVert){
+            newVertVec[i] = v3;
+            i++;
+        }
+        for(int pv = posPunti[0]; pv<=posPunti[1]; pv++)
+            newFrac1.vertices[pv-posPunti[0]] = newVertVec[pv];
+            /*pm.Cell0DId.push_back(pm.numCell0D);
+            pm.MapCell0D[pm.numCell0D] = newVertVec[pv];
+
+            if(pv==posPunti[0])
+                idPunto0 = pm.numCell0D;
+            else if(pv==posPunti[1]){
+                idPunto1 = pm.numCell0D;
+                idEdgeCut = pm.numCell1D;
+                pm.Cell1DId.push_back(idEdgeCut);
+                pm.MapCell1D[idEdgeCut].push_back(idPunto0);
+                pm.MapCell1D[idEdgeCut].push_back(idPunto1);
+                pm.MapCell2DEdges[pm.numCell2D].push_back(pm.numCell1D++);
+            }
+
+            if(pv+1<posPunti[1]){
+                pm.Cell1DId.push_back((pm.numCell1D));
+                pm.MapCell1D[pm.numCell1D].push_back(pm.numCell0D);
+                pm.MapCell1D[pm.numCell1D].push_back(pm.numCell0D+1);
+                pm.MapCell2DEdges[pm.numCell2D].push_back(pm.numCell1D++);
+            }
+            pm.MapCell2DVertices[pm.numCell2D].push_back(pm.numCell0D++);
+        }
+        cout << "num cele 0d: " << pm.numCell0D << endl;
+        pm.Cell2DId.push_back(pm.numCell2D++);*/
+        for( int pv = posPunti[1]; pv < newVert.size(); pv++)
+            newFrac2.vertices[pv-posPunti[1]] = newVertVec[pv];
+            /*if(pv==posPunti[1]){
+                //pm.Cell1DId.push_back((pm.numCell1D));
+                pm.MapCell1D[pm.numCell1D].push_back(idPunto1);
+                pm.MapCell1D[pm.numCell1D].push_back(idPunto1+1);
+                pm.MapCell2DEdges[pm.numCell2D].push_back(pm.numCell1D++);
+                pm.MapCell2DVertices[pm.numCell2D].push_back(idPunto1);
+            }
+            else{
+                pm.Cell0DId.push_back(pm.numCell0D);
+                pm.MapCell0D[pm.numCell0D] = newVertVec[pv];
+                pm.Cell1DId.push_back((pm.numCell1D));
+                pm.MapCell1D[pm.numCell1D].push_back(pm.numCell0D);
+                pm.MapCell1D[pm.numCell1D].push_back(pm.numCell0D+1);
+                pm.MapCell2DEdges[pm.numCell2D].push_back(pm.numCell1D++);
+                pm.MapCell2DVertices[pm.numCell2D].push_back(pm.numCell0D++);
+            }
+        }
+        cout << "num cele 0d: " << pm.numCell0D << endl;*/
+        for( int pv = 0; pv <= posPunti[0]; pv++)
+            newFrac2.vertices[pv + (newVert.size() - posPunti[1])] = newVertVec[pv];
+            /*if(pv==posPunti[0]){
+                pm.MapCell2DVertices[pm.numCell2D].push_back(idPunto0);
+                pm.MapCell2DEdges[pm.numCell2D].push_back(idEdgeCut);
+            }
+            else{
+                pm.Cell0DId.push_back(pm.numCell0D);
+                pm.MapCell0D[pm.numCell0D] = newVertVec[pv];
+                pm.Cell1DId.push_back((pm.numCell1D));
+                pm.MapCell1D[pm.numCell1D].push_back(pm.numCell0D);
+                pm.MapCell1D[pm.numCell1D].push_back(pm.numCell0D+1);
+                pm.MapCell2DEdges[pm.numCell2D].push_back(pm.numCell1D++);
+                pm.MapCell2DVertices[pm.numCell2D].push_back(pm.numCell0D++);
+            }
+        }*/
+        //cout << "num cele 0d: " << pm.numCell0D << endl;
+        //pm.Cell2DId.push_back(pm.numCell2D++);
+
+        newfractures.push_back(newFrac1);
+        newfractures.push_back(newFrac2);
+
+        return newfractures;
+    }
+
     VectorXd PALUSolver(const MatrixXd& a, const VectorXd& b){
         VectorXd solutionPALU = a.fullPivLu().solve(b);
         return solutionPALU;
 
+    }
+
+    bool orderLen(const Trace &a, const Trace &b){
+        return a.len >= b.len;
     }
 
     bool compareFirstElement(const Vector3d& a, const Vector3d& b) {
@@ -46,18 +267,33 @@ namespace FractureLibrary {
 
     //controllo se un punto appartiene ad un segmento
     bool onSegment(const Vector3d& p, const Vector3d& a, const Vector3d& b){
-        double t = (p[0] - a[0])/(b[0]-a[0]);
-        if((t<0.0)||(t>1.0)){
-            return false;
+        double t = 0.0;
+        unsigned int usata = 0;
+        for(unsigned int i=0; i<3; i++){
+            if(abs(b[i]-a[i])>tol){
+               t = (p[i] - a[i])/(b[i]-a[i]);
+                usata = i;
+            }
         }
-        double y = a[1] + t*(b[1]-a[1]);
-        double z = a[2] + t*(b[2]-a[2]);
-        return abs(p[1]-y)<tol && abs(p[2]-z)<tol;
+        if((t<0.0)||(t>1.0))
+            return false;
+
+        vector<bool> check(2,false);
+        unsigned int index = 0;
+        for(unsigned int i=0; i<3; i++){
+            if(i!=usata){
+                double y = a[i] + t*(b[i]-a[i]);
+                if(abs(p[i] - y)<tol)
+                    check[index] = true;
+                index++;
+            }
+        }
+        return check[0] && check[1];
     }
 
 
 
-    // importo i dati dai file ( va bene per tutti questa funzione!!!!
+    // importo i dati dai file
     bool ImportFR_data(const string &filename,
                        FractureMesh& mesh)
     {
@@ -88,7 +324,6 @@ namespace FractureLibrary {
         cout << "numero di fratture: " << mesh.NumFractures << endl;
 
         char sep;
-        //list<string> listLines;
         unsigned int id = 0;
         unsigned int numvertices = 0;
         for (i=0; i < N; i++)
@@ -121,8 +356,6 @@ namespace FractureLibrary {
                     converter >> a; 
                     f.vertices[t][j] = a;
                     bary[j]+=a;
-
-                    //listLines.push_back(line); // aggiungo alla fine della lista ogni nuova riga presa dal file
                 }
                 bary[j] = bary[j]/numvertices;
             }
@@ -137,50 +370,28 @@ namespace FractureLibrary {
 
     }
 
-    void findIntersections(const unsigned int &id, FractureMesh &mesh){
-        mesh.vecTrace.reserve(mesh.NumFractures*(mesh.NumFractures-1));
+    unsigned int idTrace = 0;
+
+    void findIntersections(FractureMesh &mesh){
+        for(unsigned int id = 0; id<mesh.NumFractures; id++){
         Fracture &f = mesh.MapFractures.at(id);
-        Vector3d lato1F;
-        Vector3d lato2F;
-        //calcolo 2 lati
-        for(unsigned int j =0; j<3; j++){
-            lato1F[j] = f.vertices[1][j] - f.vertices[0][j];
-            lato2F[j] = f.vertices[3][j] - f.vertices[0][j];
-        }
-        //normalizzo i lati
-        double lato1Fn = lato1F.squaredNorm();
-        double lato2Fn = lato2F.squaredNorm();
-        //calcolo il vettore normale e lo normalizzo
-        Vector3d planeF;
-        planeF[0] = (lato1F[1]*lato2F[2] - lato1F[2]*lato2F[1])/(lato1Fn*lato2Fn);
-        planeF[1] = (lato1F[2]*lato2F[0] - lato1F[0]*lato2F[2])/(lato1Fn*lato2Fn);
-        planeF[2] = (lato1F[0]*lato2F[1] - lato1F[1]*lato2F[0])/(lato1Fn*lato2Fn);
+
+        //mesh.vecTrace.reserve(mesh.NumFractures*(mesh.NumFractures-1));
+        Vector3d planeF = calcoloPiano(f);
         double dF = -(planeF[0] * f.vertices[0][0]) - (planeF[1] * f.vertices[0][1]) - (planeF[2] * f.vertices[0][2]);
 
         //ciclo sui poigoni successivi
         for(unsigned int i=id+1; i<mesh.NumFractures; i++){
             bool inter = false;
-            vector<Vector3d> trace;
+            vector<Vector3d> trace = {};
             trace.resize(2);
+            Vector3d t = {};
             double distanzainF = 0;
             double distanzainFC = 0;
 
             Fracture &fConf = mesh.MapFractures.at(i);
 
-            Vector3d lato1FConf;
-            Vector3d lato2FConf;
-            for(unsigned int j =0; j<3; j++){
-                lato1FConf[j] = fConf.vertices[1][j] - fConf.vertices[0][j];
-                lato2FConf[j] = fConf.vertices[3][j] - fConf.vertices[0][j];
-            }
-
-            //normalizzo i lati del secondo poligono
-            double lato1FnConf = lato1FConf.squaredNorm();
-            double lato2FnConf = lato2FConf.squaredNorm();
-            Vector3d planeFConf;
-            planeFConf[0] = (lato1FConf[1]*lato2FConf[2] - lato1FConf[2]*lato2FConf[1])/(lato1FnConf*lato2FnConf);
-            planeFConf[1] = (lato1FConf[2]*lato2FConf[0] - lato1FConf[0]*lato2FConf[2])/(lato1FnConf*lato2FnConf);
-            planeFConf[2] = (lato1FConf[0]*lato2FConf[1] - lato1FConf[1]*lato2FConf[0])/(lato1FnConf*lato2FnConf);
+            Vector3d planeFConf = calcoloPiano(fConf);
             double dFConf = -(planeFConf[0] * fConf.vertices[0][0]) - (planeFConf[1] * fConf.vertices[0][1]) - (planeFConf[2] * fConf.vertices[0][2]);
 
             //cout <<"Il piano "<< id << " ha equazione "<< planeF[0] <<"x + " <<planeF[1] <<"y + " <<planeF[2] <<"z + " << dF << " = 0 "<<endl;
@@ -188,7 +399,21 @@ namespace FractureLibrary {
 
             if(planeF[0]==planeFConf[0] && planeF[1]==planeFConf[1] && planeF[2]==planeFConf[2] && dF == dFConf){ //condizone di complanarità
                 cout << "le figure "<< id <<" e " << i <<" sono complanari" << endl;
-                //codice su possibile tracce lungo i lati
+                /*for(int j=0; j<f.NumVertices; j++){
+                    int &vert0 = j;
+                    int vert1 = j+1;
+                    if(j==f.NumVertices-1){
+                        vert1 = j-f.NumVertices-1;
+                    }
+                    Vector3d retta(f.vertices[vert1][0]-f.vertices[vert0][0],f.vertices[vert1][1]-f.vertices[vert0][1],f.vertices[vert1][2]-f.vertices[vert0][2]);
+                    for(int k=0; k<fConf.NumVertices; k++){
+                        int &vert0 = k;
+                        int vert1 = k+1;
+                        if(k==fConf.NumVertices-1){
+                            vert1 = k-3;
+                        }
+
+                }*/
 
 
                 //continue;
@@ -205,8 +430,8 @@ namespace FractureLibrary {
 
             }
             else { //se non sono complanari calcolo le intersezioni tra i piani
-                Vector3d t = planeF.cross(planeFConf);
-                //cout << "retta di intersezione: " << t[0] << " " <<t[1] << " " << t[2] << endl;
+                t = planeF.cross(planeFConf);
+                cout << "retta t: " << t[0] << " " << t[1] << " " << t[2] << endl;
                 Matrix3d A;
                 A.row(0) = planeF;
                 A.row(1) = planeFConf;
@@ -224,75 +449,7 @@ namespace FractureLibrary {
                 Vector3d p = PALUSolver(A, b);
 
                 //calcolo le interseioni dei lati della fracture con la retta di interseione dei piani
-                vector<Vector3d> intersectionsF;
-                intersectionsF.reserve(2);
-                for(unsigned int l = 0; l < f.NumVertices; l++){
-                    //Matrix2d A1;
-                    unsigned int &vert0 = l;
-                    unsigned int vert1 = l+1;
-
-                    if(l==f.NumVertices-1){
-                        vert1 = l-(f.NumVertices-1);
-                    }
-
-                    Vector3d tr;
-                    tr[0] = f.vertices[vert1][0] - f.vertices[vert0][0];
-                    tr[1] = f.vertices[vert1][1] - f.vertices[vert0][1];
-                    tr[2] = f.vertices[vert1][2] - f.vertices[vert0][2];
-
-                    Vector3d prod_t_t1 = t.cross(tr);
-                    Vector3d prod_t_p = (p-f.vertices[vert1]).cross(t);
-                    Vector3d prod_t1_p = (f.vertices[vert1]-p).cross(tr);
-
-                    double alfa = (prod_t_p.dot(prod_t_t1))/(prod_t_t1.dot(prod_t_t1));
-                    double beta = (prod_t1_p.dot(prod_t_t1))/(prod_t_t1.dot(prod_t_t1));
-
-                    if(alfa>=0 && alfa <=1){
-                        Vector3d v;
-                        v[0] = f.vertices[vert0][0]*alfa + (1-alfa)*f.vertices[vert1][0];
-                        v[1] = f.vertices[vert0][1]*alfa + (1-alfa)*f.vertices[vert1][1];
-                        v[2] = f.vertices[vert0][2]*alfa + (1-alfa)*f.vertices[vert1][2];
-                        intersectionsF.push_back(v);
-                    }
-                    /*Vector2d r1(f.vertices[vert1][0] - f.vertices[vert0][0], t[0]);
-                    Vector2d r2(f.vertices[vert1][1] - f.vertices[vert0][1], t[1]);
-                    A1.row(0) = r1;
-                    A1.row(1) = r2;
-
-
-                    if(A1.determinant()==0){ // il lato e retta di intersezione tra i piani sono paralleli oppure sovrapposto
-                        if((f.vertices[vert0][0]-p[0])/t[0] == (f.vertices[vert0][1]-p[1])/t[1]){ //questo dovrebbe dirmi se stanno sulla stessa retta
-                            Vector3d v1(f.vertices[vert0][0],f.vertices[vert0][1], f.vertices[vert0][2]);
-                            Vector3d v2(f.vertices[vert1][0],f.vertices[vert1][1], f.vertices[vert1][2]);
-                            intersectionsF.push_back(v1);
-                            intersectionsF.push_back(v2);
-                            break; // esco dal ciclo for sui lati perchè ho già determinato i due punti di intersezione
-                                // e non è possibile che una retta inconti un poligono conesso in più di due punti
-                        }
-                        else{ // le due rette sono parallele quindi non hanno intersezioni
-                            continue; //dovrebbe passare al prossimo lato CONTROLLARE
-                        }
-                    }
-
-                    else{
-                        Vector2d b1(p[0] - f.vertices[vert0][0], p[1] - f.vertices[vert0][1]);
-                        Vector2d coeff = PALUSolver(A1, b1);
-
-                        if(coeff[0]>=0 && coeff[0]<=1){ //controllo che l'intersezione sia interna al lato del poligono (combinazione convessa)
-                            //cout<<id<< " coeff a: " << coeff[0] << endl;
-                            Vector3d v;
-                            v[0] = f.vertices[vert0][0] + coeff[0]*(f.vertices[vert1][0] - f.vertices[vert0][0]);
-                            v[1] = f.vertices[vert0][1] + coeff[0]*(f.vertices[vert1][1] - f.vertices[vert0][1]);
-                            v[2] = (-dF - planeF[0]*v[0] - planeF[1]*v[1])/planeF[2];
-                            intersectionsF.push_back(v);
-                        }*/
-
-                        if(intersectionsF.size()==2){
-                            //cout << "il primo poligono è tagliato" << endl;
-                            break;  //esco dal ciclo perchè di nuovo non è posisbile che una retta intersechi un poligono in più di due punti
-                        }           // potremmo anche mettere questo if fuori dall'else e levare il break prima , come ci piace di più
-
-                }
+                vector<Vector3d> intersectionsF = intersezionipoligonoretta(t, p, f);
 
                 if(intersectionsF.size()==0){ // se nessuno dei lati del poligono interseca la retta allora sicuramente i due poligono in esame
                                               // non si iintersecano -> passo a confromtarlo con un altro poligono
@@ -302,147 +459,16 @@ namespace FractureLibrary {
 
 
                 //calcolo le intersezioni della retta con l'altra fracture
-                vector<Vector3d> intersectionsFC;
-                intersectionsFC.reserve(2);
-                for(unsigned int l = 0; l < fConf.NumVertices; l++){
-                    //Matrix2d A1;
-                    unsigned int &vert0 = l;
-                    unsigned int vert1 = l+1;
-
-                    if(l==fConf.NumVertices-1){
-                        vert1 = l-(fConf.NumVertices-1);
-                    }
-
-                    Vector3d tr;
-                    tr[0] = fConf.vertices[vert1][0] - fConf.vertices[vert0][0];
-                    tr[1] = fConf.vertices[vert1][1] - fConf.vertices[vert0][1];
-                    tr[2] = fConf.vertices[vert1][2] - fConf.vertices[vert0][2];
-
-                    Vector3d prod_t_t1 = t.cross(tr);
-                    Vector3d prod_t_p = (p-fConf.vertices[vert1]).cross(t);
-                    Vector3d prod_t1_p = (fConf.vertices[vert1]-p).cross(tr);
-
-                    double alfa = (prod_t_p.dot(prod_t_t1))/(prod_t_t1.dot(prod_t_t1));
-                    double beta = (prod_t1_p.dot(prod_t_t1))/(prod_t_t1.dot(prod_t_t1));
-
-                    if(alfa>=0 && alfa <=1){
-                        Vector3d v;
-                        v[0] = fConf.vertices[vert0][0]*alfa + (1-alfa)*fConf.vertices[vert1][0];
-                        v[1] = fConf.vertices[vert0][1]*alfa + (1-alfa)*fConf.vertices[vert1][1];
-                        v[2] = fConf.vertices[vert0][2]*alfa + (1-alfa)*fConf.vertices[vert1][2];
-                        intersectionsFC.push_back(v);
-                    }
-
-                    /*Vector2d r1(fConf.vertices[vert1][0] - fConf.vertices[vert0][0], t[0]);
-                    Vector2d r2(fConf.vertices[vert1][1] - fConf.vertices[vert0][1], t[1]);
-                    if(r1[0]==0 && r1[1]==0 && t[0]==0 && t[1]==0){
-                        r2[0]=fConf.vertices[vert1][2] - fConf.vertices[vert0][2];
-                        r2[1]=t[2];
-                    }
-                    if(r1[0]==0 && r1[1]==0 && t[0]==0 && t[1]!=0){
-                        r1[0]=fConf.vertices[vert1][2] - fConf.vertices[vert0][2];
-                        r1[1]=t[2];
-                    }
-                    if(t[0]==0 && t[1]==0 && r1[0]!=0 && r1[1]==0){
-                        r2[0]=fConf.vertices[vert1][2] - fConf.vertices[vert0][2];
-                        r2[1]=t[2];
-                    }
-                    if(t[0]==0 && t[1]==0 && r1[0]==0 && r1[1]!=0){
-                        r1[0]=fConf.vertices[vert1][2] - fConf.vertices[vert0][2];
-                        r1[1]=t[2];
-                    }
-                    A1.row(0) = r1;
-                    A1.row(1) = r2;
-
-                    cout <<" matrice a della figura " << i << endl;
-                    cout << r1[0] << " " << r1[1] << endl << r2[0] <<" "<< r1[1]<< endl;
-
-                    if(A1.determinant()==0){
-
-                        if(((fConf.vertices[vert0][0]-p[0])/t[0]- (fConf.vertices[vert0][1]-p[1])/t[1])<tol){
-
-                            Vector3d v1(fConf.vertices[vert0][0],fConf.vertices[vert0][1], fConf.vertices[vert0][2]);
-                            Vector3d v2(fConf.vertices[vert1][0],fConf.vertices[vert1][1], fConf.vertices[vert1][2]);
-                            intersectionsFC.push_back(v1);
-                            intersectionsFC.push_back(v2);
-                            break;
-                        }
-                        else{ //sono parallele
-                            //cout << "eiii" << endl;
-                            continue;
-                        }
-                    }
-
-                    else{
-                        Vector2d b1(p[0] - fConf.vertices[vert0][0], p[1] - fConf.vertices[vert0][1]);
-
-                        Vector2d coeff = PALUSolver(A1, b1);
-                        //cout<<i<< " coeff a: " << coeff[0] << endl;
-
-                        if(coeff[0]>=0 && coeff[0]<=1){
-
-                            Vector3d v;
-                            v[0] = fConf.vertices[vert0][0] + coeff[0]*(fConf.vertices[vert1][0] - fConf.vertices[vert0][0]);
-                            v[1] = fConf.vertices[vert0][1] + coeff[0]*(fConf.vertices[vert1][1] - fConf.vertices[vert0][1]);
-                            v[2] = (- dFConf - planeFConf[0]*v[0] - planeFConf[1]*v[1])/planeFConf[2];
-                            intersectionsFC.push_back(v);
-                        }*/
-
-                        if(intersectionsFC.size()==2){
-                            //cout << "il secondo poligono è tagliato" << endl;
-                            break;
-                        }
-                    //}
-                }
+                vector<Vector3d> intersectionsFC = intersezionipoligonoretta(t,p,fConf);
 
                 if(intersectionsFC.size()==0){
                     cout << "Le figure " << id <<" e " << i << " non si intersecano perche' la seconda non e' attraversata dalla retta di intersezione tra i piani" << endl;
                     continue;
                 }
 
-
                 // calcolo le interseioni tra i due segmenti tovati
-                /*Vector3d trF;
-                trF[0] = intersectionsF[1][0] - intersectionsF[0][0];
-                trF[1] = intersectionsF[1][1] - intersectionsF[0][1];
-                trF[2] = intersectionsF[1][2] - intersectionsF[0][2];
-                Vector3d trFC;
-                trFC[0] = intersectionsFC[1][0] - intersectionsFC[0][0];
-                trFC[1] = intersectionsFC[1][1] - intersectionsFC[0][1];
-                trFC[2] = intersectionsFC[1][2] - intersectionsFC[0][2];
-
-                Vector3d prod_t_t1 = trF.cross(trFC);
-                Vector3d prod_t_p = (intersectionsF[1]-intersectionsFC[1]).cross(trFC);
-                Vector3d prod_t1_p = (intersectionsFC[1]-intersectionsF[1]).cross(trF);
-
-                double alfa = (prod_t_p.dot(prod_t_t1))/(prod_t_t1.dot(prod_t_t1));
-                double beta = (prod_t1_p.dot(prod_t_t1))/(prod_t_t1.dot(prod_t_t1));
-
-                if(alfa>=0 && alfa <=1){
-                    Vector3d v;
-                    v[0] = intersectionsF[0][0]*alfa + (1-alfa)*intersectionsF[1][0];
-                    v[1] = intersectionsF[0][1]*alfa + (1-alfa)*intersectionsF[1][1];
-                    v[2] = intersectionsF[0][2]*alfa + (1-alfa)*intersectionsF[1][2];
-
-                }
-
-                if(beta>=0 && beta <=1){
-                    Vector3d v;
-                }*/
-               // Matrix2d A2;
-               // A2.row(0)(intersectionsF[1][0] - intersectionsF[0][0], intersectionsFC[1][0] - intersectionsFC[0][0]);
-                //A2.row(1)(intersectionsF[1][1] - intersectionsF[0][1], intersectionsFC[1][1] - intersectionsFC[0][1]);
-                //Vector2d b2(intersectionsFC[0][0] - intersectionsF[0][0], intersectionsFC[0][1] - intersectionsF[0][1]);
-                //if(A2.determinant() == 0){ //i due segmenti stanno sulla stessa retta
                 sort(intersectionsF.begin(), intersectionsF.end(), compareFirstElement);
                 sort(intersectionsFC.begin(), intersectionsFC.end(), compareFirstElement);
-                /*cout <<"intersezioni x primo poligono " << intersectionsF[0][0] << " " << intersectionsF[1][0] << endl;
-                cout <<"intersezioni y primo poligono " << intersectionsF[0][1] << " " << intersectionsF[1][1] << endl;
-                cout <<"intersezioni z primo poligono " << intersectionsF[0][2] << " " << intersectionsF[1][2] << endl;;
-                cout <<"intersezionix secondo poligono " << intersectionsFC[0][0] << " " << intersectionsFC[1][0] << endl;
-                cout << "intersezioniy secondo poligono " << intersectionsFC[0][1] << " " << intersectionsFC[1][1] << endl;
-                cout << "intersezioniz secondo poligono " << intersectionsFC[0][2] << " " << intersectionsFC[1][2] << endl;*/
-
 
                 if(intersectionsF[0][0] <= intersectionsFC[0][0]){
                     if(intersectionsF[1][0]<intersectionsFC[0][0]){
@@ -451,35 +477,17 @@ namespace FractureLibrary {
                         continue;
                     }
                     else if(intersectionsF[1][0] >= intersectionsFC[0][0] && intersectionsF[1][0]<= intersectionsFC[1][0]){
-                        /*double z1F = (-dF - planeF[0]*intersectionsFC[0][0] - planeF[1]*intersectionsFC[0][1])/planeF[2];
-                        double z2FC = (-dFConf - planeFConf[0]*intersectionsF[1][0] - planeFConf[1]*intersectionsF[1][1])/planeFConf[2];
-                        cout << z1F << "  " << z2FC << endl;
-                        if((intersectionsFC[0][2]-z1F)<tol && (intersectionsF[1][2]-z2FC)<tol){*/
-                            trace[0]=intersectionsFC[0];
-                            trace[1]=intersectionsF[1];
-                            cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
-                            inter = true;
-
-                        /*}
-                        else{
-                            cout << id <<" e " << i << " in realtà non si intersecano sulla z" << endl;
-                            continue;
-                        }*/
+                        trace[0]=intersectionsFC[0];
+                        trace[1]=intersectionsF[1];
+                        cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
+                        inter = true;
 
                     }
-                    else if(intersectionsF[1][0]>=intersectionsFC[1][0]){
-                        /*double z1F = (-dF - planeF[0]*intersectionsFC[0][0] - planeF[1]*intersectionsFC[0][1])/planeF[2];
-                        double z2F = (-dF - planeF[0]*intersectionsFC[1][0] - planeF[1]*intersectionsFC[1][1])/planeF[2];
-                        if((intersectionsFC[0][2]-z1F)<tol && (intersectionsFC[1][2]-z2F)<tol){*/
-                            trace[0]=intersectionsFC[0];
-                            trace[1]=intersectionsFC[1];
-                            cout << "LE DUE FIGURE " << id <<" e " << i <<" SI INTERSECANO" << endl;
-                            inter = true;
-                        /*}
-                        else{
-                            cout << id <<" e " << i  << " in realtà non si intersecano sulla z" << endl;
-                            continue;
-                        }*/
+                    else if(intersectionsF[1][0]>=intersectionsFC[1][0]){                        
+                        trace[0]=intersectionsFC[0];
+                        trace[1]=intersectionsFC[1];
+                        cout << "LE DUE FIGURE " << id <<" e " << i <<" SI INTERSECANO" << endl;
+                        inter = true;
                     }
 
                 }else if(intersectionsFC[0][0]<=intersectionsF[0][0]){
@@ -488,123 +496,165 @@ namespace FractureLibrary {
                         continue;
                     }
                     else if(intersectionsFC[1][0]>=intersectionsF[0][0] && intersectionsFC[1][0]<=intersectionsF[1][0]){
-
-                        /*double z1FC = (-dFConf - planeFConf[0]*intersectionsF[0][0] - planeFConf[1]*intersectionsF[0][1])/planeFConf[2];
-                        double z2F = (-dF - planeF[0]*intersectionsFC[1][0] - planeF[1]*intersectionsFC[1][1])/planeF[2];
-                        if((intersectionsF[0][2]-z1FC)<tol && (intersectionsFC[1][2]-z2F)<tol){*/
-                            trace[0]=(intersectionsF[0]);
-                            trace[1]=(intersectionsFC[1]);
-                            cout << trace[0][0] <<  "  " << trace[1][0]<< endl;
-                            cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
-                            inter = true;
-
-                       /* }
-                        else{
-                            cout << id <<" e " << i  << " in realtà non si intersecano sulla z" << endl;
-                            continue;
-                        }*/
+                        trace[0]=(intersectionsF[0]);
+                        trace[1]=(intersectionsFC[1]);
+                        cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
+                        inter = true;
 
                     }
                     else if(intersectionsFC[1][0]>=intersectionsF[1][0]){
-                       /* double z1FC = (-dFConf - planeFConf[0]*intersectionsF[0][0] - planeFConf[1]*intersectionsF[0][1])/planeFConf[2];
-                        double z2FC = (-dFConf - planeFConf[0]*intersectionsF[1][0] - planeFConf[1]*intersectionsF[1][1])/planeFConf[2];
-                        if((intersectionsF[0][2]-z1FC)<tol && (intersectionsF[1][2]-z2FC)<tol){*/
-                            trace[0]=(intersectionsF[0]);
-                            trace[1]=(intersectionsF[1]);
-                            cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
-                            inter = true;
-                       /* }
-                        else{
-                            cout << id <<" e " << i  << " in realtà non si intersecano sulla z" << endl;
-                            continue;
-                        }*/
+                        trace[0]=(intersectionsF[0]);
+                        trace[1]=(intersectionsF[1]);
+                        cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
+                        inter = true;
                     }
                 }
                 if(inter){
-                    distanzainF = dist(intersectionsF[0],intersectionsF[1]);
-                    cout << distanzainF << endl;
-                    //double distanzainF = 0;
-                    //double distanzainFC = 0;
+                    distanzainF = dist(intersectionsF[0],intersectionsF[1]);                   
                     distanzainFC = dist(intersectionsFC[0], intersectionsFC[1]);
-                    cout << distanzainFC << endl;
                 }
             }
 
             if(inter){
                 Trace newTrace;
                 newTrace.coordTrace.resize(2);
+                newTrace.fraId[0] =id;
+                newTrace.fraId[1] = i;
                 newTrace.coordTrace = trace;
                 double lunghezzatraccia = dist(trace[0],trace[1]);
                 newTrace.len = lunghezzatraccia;
-                mesh.vecTrace.push_back(newTrace);
+                newTrace.id = idTrace;
+                mesh.MapTrace[idTrace] = newTrace;
+                idTrace++;
+                f.numFrac++;
+                fConf.numFrac++;
+                newTrace.retta = t;
 
                 if(abs(lunghezzatraccia-distanzainF)<tol){
                     cout << "figura " << id << " e' passante"<< endl;
                     f.listPas.push_back(newTrace);
+                    f.tips[newTrace.id] = false;
 
                 }else{
                     f.listNonpas.push_back(newTrace);
+                    f.tips[newTrace.id] = true;
                 }
 
                 if(abs(lunghezzatraccia-distanzainFC)<tol){
                     cout << "figura " << i << " e' passante"<<endl;
                     fConf.listPas.push_back(newTrace);
+                    fConf.tips[newTrace.id] = false;
+
                 }else{
-                    fConf.listPas.push_back(newTrace);
+                    fConf.listNonpas.push_back(newTrace);
+                    fConf.tips[newTrace.id] = true;
                 }
             }
-                /*vector<bool> interLatiF(2,false);
-                vector<bool> interLatiFC(2,false);
-
-                //ciclo su tutti i lati di entrambi i poligoni per capire se gli estrami della traccia appartengono ai lati, ovvero se la traccia è passante
-                for(unsigned int k = 0; k<2; k++){
-                    Vector3d &punto = newTrace.coordTrace[k];
-
-                    for(unsigned int j = 0; j<f.NumVertices; j++){
-                        unsigned int &vert0 = j;
-                        unsigned int vert1 = j+1;
-                        if(j==f.NumVertices-1){
-                            vert1 = j-(f.NumVertices-1);
-                        }
-                        if(onSegment(punto,f.vertices[vert0],f.vertices[vert1])){
-                            interLatiF[k] = true;
-                        }                       
-                    }
-
-                    for(unsigned int j = 0; j<fConf.NumVertices; j++){
-                        unsigned int &vert0 = j;
-                        unsigned int vert1 = j+1;
-                        if(j==fConf.NumVertices-1){
-                            vert1 = j-(fConf.NumVertices-1);
-                        }
-                        if(onSegment(punto,fConf.vertices[vert0],fConf.vertices[vert1])){
-                            interLatiFC[k] = true;
-                        }
-                    }
-                }
-
-
-                if(interLatiF[0] && interLatiF[1]){
-                    newTrace.fracturesTrace.insert({id, true});
-                    cout << "figura " << id << " e' passante"<< endl;
-                    if()
-                    f.listPas.push_back(newTrace);
-                }
-                else{
-                    newTrace.fracturesTrace.insert({id, false});
-                    f.listNonpas.push
-                }
-
-                if(interLatiFC[0] && interLatiFC[1]){
-                    newTrace.fracturesTrace.insert({i, true});
-                    cout << "figura " << i << " e' passante"<<endl;
-                }
-                else{
-                    newTrace.fracturesTrace.insert({i, false});
-                }
-
-            }*/
         }
 
+        f.listPas.sort(orderLen);
+        f.listNonpas.sort(orderLen);
+        }
     }
+
+    void printingtraces(FractureMesh& mesh, const string& file){
+        string filepath = "traces_" + file.substr(4,file.length()-4);
+        ofstream outfile(filepath);
+        if (outfile.is_open()) {
+            outfile << "#N Traces" << endl << mesh.MapTrace.size() << endl;
+            outfile << "# TraceId; FractureId1; FractureId2; X1; Y1; Z1; X2; Y2; Z2" << endl;
+            for(const auto &t: mesh.MapTrace){
+                outfile << t.first << "; " << t.second.fraId[0] << "; " << t.second.fraId[1] << "; ";
+                for(unsigned int i=0; i<2; i++){
+                    for(unsigned int j=0; j<3; j++){
+                        if(t.second.coordTrace[i][j]<tol){
+                            outfile << 0 << "; ";
+                        }
+                        else{
+                            outfile << scientific << setprecision(16)<< t.second.coordTrace[i][j] << "; ";
+                        }
+                    }
+                }
+                outfile << endl;
+            }
+            outfile.close();
+        } else {
+            cout << "Impossibile aprire il file." << endl;
+        }
+    }
+
+    void printingfractures(FractureMesh& mesh, const string& file){
+        string filepath = "fractures_" + file.substr(4,file.length()-4);
+        ofstream outfile(filepath);
+        if (outfile.is_open()) {
+            for(const auto &f: mesh.MapFractures){
+                outfile << "# FractureId; NumTraces" << endl << f.first << "; " << f.second.numFrac << endl << "# TraceId; Tips; Lenght" << endl;
+                for(const auto &t: f.second.tips){
+                    outfile << t.first << "; ";
+                    if(t.second){
+                        outfile << "true; ";
+                    }
+                    else{
+                        outfile << "false; ";
+                    }
+                    outfile << scientific << setprecision(16)<< mesh.MapTrace[t.first].len << endl;
+                }
+                outfile << endl;
+            }
+            outfile.close();
+        } else {
+            cout << "Impossibile aprire il file." << endl;
+        }
+    }
+
+    PolygonalMesh newpolygon(FractureMesh& mesh){
+
+        PolygonalMesh pm;
+
+        unsigned int id = 0;
+        map<unsigned int, Fracture> MapNewFractures = {};
+
+        for(const auto& coppia: mesh.MapFractures){
+            Fracture f = coppia.second;
+
+            map<unsigned int, Vector3d> MapCell0D = {};
+            map<unsigned int, list<unsigned int>> MapCell1D = {};
+            map<unsigned int, list<unsigned int>> MapCell2DEdges = {};
+
+            list<Fracture> datagliare = {};
+            datagliare.push_back(f);
+
+            for(const Trace& trace: f.listPas){
+                cout << "la figura " << coppia.first << " ha numero tracce passanti: " << f.listPas.size() << endl;
+
+                list<Fracture> newfractures = {};
+                for(const Fracture& ff: datagliare){
+                    vector<Fracture> nfs = cuttingfractures(ff, trace ,pm);
+                    for(const Fracture& nf: nfs){
+                        newfractures.push_back(nf);
+                    }
+                }
+
+                datagliare = newfractures;
+            }
+
+
+            for(const Fracture& nf: datagliare){
+                MapNewFractures[id++] = nf;
+                cout << id-1 << ": " << endl;
+                for(unsigned int j=0; j<nf.NumVertices; j++){
+                    for(unsigned int k = 0; k<3; k++){
+                        cout << nf.vertices[j][k] << " ";
+                    }
+                    cout << endl;
+                }
+
+            }
+        }
+        // dalle fratture ricavati lati e vertici -> trova modo per non mettere gloi stessi due volte
+
+        return pm;
+    }
+
+
 }
