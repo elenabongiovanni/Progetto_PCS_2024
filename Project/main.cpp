@@ -33,7 +33,7 @@ int main(int argc, char ** argv)
         return 2;
     }
 
-    for(unsigned int i=0; i<mesh.NumFractures; i++){
+    /*for(unsigned int i=0; i<mesh.NumFractures; i++){
         cout << "Fracture id: " << i << endl;
         for(unsigned int j=0; j<mesh.MapFractures[i].NumVertices; j++){
             for(unsigned int k=0; k<3; k++){
@@ -42,7 +42,7 @@ int main(int argc, char ** argv)
             cout << endl;
         }
         cout << endl;
-    }
+    }*/
 
 
     /*for(unsigned int i=0; i<mesh.NumFractures; i++){
@@ -58,7 +58,7 @@ int main(int argc, char ** argv)
     //for(unsigned int i=0; i<mesh.NumFractures-1; i++){
     findIntersections(mesh);
     printingtraces(mesh, filepath);
-    printingfractures(mesh, filepath);
+    //printingfractures(mesh, filepath);*/
 
     PolygonalMesh p = newpolygon(mesh);
 

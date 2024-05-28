@@ -8,11 +8,17 @@ using namespace Eigen;
 
 namespace FractureLibrary
 {
+    //double findMin(const vector<double> v);
+
+    //double findMax(const vector<double> v);
+
+    bool isPointInsideFracture(const Vector3d& p, const Fracture& f);
+
     Vector3d calcoloPiano(const Fracture& f);
 
     vector<Vector3d> intersezionipoligonoretta(const Vector3d& t, const Vector3d p, const Fracture& f);
 
-    vector<Fracture> cuttingfractures(const Fracture& f, const Trace& t, PolygonalMesh& pm);
+    vector<Fracture> cuttingfractures(const Fracture& f, const Trace& t);
 
     VectorXd PALUSolver(const MatrixXd& a, const VectorXd& b);
 

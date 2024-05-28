@@ -49,7 +49,7 @@ struct FractureMesh
     //unsigned int NumVertices = 0; // rete 3-dimensionale //il numero di vertici dovrebe essere un elemento della singola frattura non della mesh
     //vector<vector<unsigned int>> Cell3DVertices = {}; // lista dei vertici
     //vector<Vector2d> Cell1DVertices = {}; // descritto da due vertici: origin e end
-    map<unsigned int, Fracture> MapFractures = {}; // potresti cambiare con freactures
+    vector<Fracture> MapFractures = {}; // potresti cambiare con freactures
     //vector<Fracture> MapFractures = {};
     //vector<Vector3d<double>> CoordinatesFractures = {};
     //vector<Trace> vecTrace = {};

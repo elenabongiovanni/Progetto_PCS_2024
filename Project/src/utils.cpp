@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <map>
 #include <iomanip>
+#include <list>
 
 using namespace std;
 using namespace Eigen;
@@ -14,6 +15,74 @@ using namespace Eigen;
 namespace FractureLibrary {
 
     double tol = 10 * numeric_limits<double>::epsilon();
+
+    /*double findMin(const vector<double> v){
+        auto minIter = min_element(v.begin(), v.end());
+
+        if (minIter != v.end()) {
+            double minValue = *minIter;
+            return minValue;
+        }  else {
+            return -1;
+        }
+           /* std::cout << "Il valore minimo nel vettore è: " << minValue << std::endl;
+        } else {
+            std::cout << "Il vettore è vuoto." << std::endl;
+        }
+    }
+
+    double findMax(const vector<double> v){
+        auto maxElementIterator = max_element(v.begin(), v.end());
+
+        if (maxElementIterator != v.end()) {
+            double maxValue = *maxElementIterator;
+            return maxValue;
+            //std::cout << "Il valore massimo nel vettore è: " << maxValue << std::endl;
+        } else {
+            //std::cout << "Il vettore è vuoto." << std::endl;
+            return -1;
+        }
+    }*/
+
+
+    bool isPointInsideFracture(const Vector3d& p, const Fracture& f) {
+
+        int n = f.vertices.size();
+        /*vector<double> x(2);
+        vector<double> y(2);
+        vector<double> z(2);*/
+        list<double> x;
+        list<double> y;
+        list<double> z;
+        for(unsigned int i=0; i<n; i++){
+            /*x[i] = f.vertices[i][0];
+            y[i] = f.vertices[i][1];
+            z[i] = f.vertices[i][2];*/
+            x.push_back(f.vertices[i][0]);
+            y.push_back(f.vertices[i][1]);
+            z.push_back(f.vertices[i][2]);
+        }
+        x.sort();
+        y.sort();
+        z.sort();
+        bool inside = false;
+
+        if((p[0]-x.front())>=-tol && (p[0]- x.back())<=tol &&
+            (p[1]- y.front())>=-tol && (p[1]-y.back())<=tol &&
+            (p[2]-z.front())>=-tol && (p[2] - z.back())<=tol){
+            inside = true;
+        }
+
+        /*for (int i = 0, j = n - 1; i < n; j = i++) {
+            if ((f.vertices[i][1] > p[1]) != (f.vertices[j][1] > p[1]) &&
+                p[0] < (f.vertices[j][0] - f.vertices[i][0]) * (p[1] - f.vertices[i][1]) / (f.vertices[j][1] - f.vertices[i][1]) + f.vertices[i][0] &&
+                (p[2] < (f.vertices[j][2] - f.vertices[i][2]) * (p[1] - f.vertices[i][1]) / (f.vertices[j][1] - f.vertices[i][1]) + f.vertices[i][2])){
+                inside = true;
+            }
+        }*/
+
+        return inside;
+    }
 
     Vector3d calcoloPiano(const Fracture& f){
         Vector3d lato1F = {};
@@ -35,7 +104,7 @@ namespace FractureLibrary {
     }
 
     vector<Vector3d> intersezionipoligonoretta(const Vector3d& t, const Vector3d p, const Fracture& f){
-        vector<Vector3d> intersectionsF = {};
+        vector<Vector3d> intersectionsF;
         intersectionsF.reserve(2);
         for(unsigned int l = 0; l < f.NumVertices; l++){
             unsigned int &vert0 = l;
@@ -73,25 +142,12 @@ namespace FractureLibrary {
         return intersectionsF;
     }
 
-    vector<Fracture> cuttingfractures(const Fracture& f, const Trace& t, PolygonalMesh& pm){
-        vector<Fracture> newfractures = {};
-        newfractures.reserve(2);
-
-        /*cout<<"coordi f: " << f.vertices[0][0] << " " <<f.vertices[0][1] << " " <<f.vertices[0][2] << " " << endl;
-        cout << f.vertices[1][0] << " " <<f.vertices[1][1] << " " <<f.vertices[1][2] << " " << endl;
-        cout << f.vertices[2][0] << " " <<f.vertices[2][1] << " " <<f.vertices[2][2] << " " << endl;
-        cout << f.vertices[3][0] << " " <<f.vertices[3][1] << " " <<f.vertices[3][2] << " " << endl;*/
-        /*Vector3d retta;
-        for(unsigned int i =0; i<3; i++){
-            retta[i] = t.coordTrace[1][i] - t.coordTrace[0][i];
-            cout << t.coordTrace[1][i]<< endl;
-            cout << t.coordTrace[0][i]<< endl;
-            cout << retta[i] << endl;
-
-        }*/
+    vector<Fracture> cuttingfractures(const Fracture& f, const Trace& t){
+        vector<Fracture> newfractures(2);
 
         vector<Vector3d> coordt = intersezionipoligonoretta(t.retta, t.coordTrace[1], f);
-        if(coordt.size()==0){
+        if(coordt.empty()){
+            newfractures.resize(1);
             newfractures.push_back(f);
             return newfractures;
         }
@@ -111,7 +167,7 @@ namespace FractureLibrary {
 
             for(unsigned int l = 0; l<f.NumVertices; l++){
 
-                unsigned int &vert0 = l;
+                unsigned int vert0 = l;
                 unsigned int vert1 = l+1;
                 if(l==f.NumVertices-1){
                     vert1 = l-(f.NumVertices-1);
@@ -120,8 +176,9 @@ namespace FractureLibrary {
                     if(abs(punto[i])<tol)
                         punto[i]=0;
                 }*/
-                if(onSegment(punto, f.vertices[vert0], f.vertices[vert1])){
 
+                if(onSegment(punto, f.vertices[vert0], f.vertices[vert1])){
+                    //cout << "onsegment" << endl;
                     if(f.vertices[vert0][0]==punto[0] && f.vertices[vert0][1]==punto[1] && f.vertices[vert0][2]==punto[2])
                         posPunti[index] = vert0;
                     else if(f.vertices[vert1][0]==punto[0] && f.vertices[vert1][1]==punto[1] && f.vertices[vert1][2]==punto[2])
@@ -129,14 +186,9 @@ namespace FractureLibrary {
                     else{
                         //cout << "siamo nel lato " << vert0 << "-" << vert1 << endl;
                         auto it = newVert.begin();
-                        unsigned int pos;
-                        if(index==0)
-                            pos = vert0+1;
-                        if(index==1)
-                            pos = vert0+2;
-                        advance(it, pos);
+                        advance(it, vert0 + 1 + index); // Correggi l'inserimento
                         newVert.insert(it, punto);
-                        posPunti[index] = pos;
+                        posPunti[index] = vert0 + 1 + index;
                     }
                 break;
                 }
@@ -144,92 +196,59 @@ namespace FractureLibrary {
             index++;
         }
 
-        Fracture newFrac1;
-        Fracture newFrac2;
+
+        Fracture newFrac1, newFrac2;
         newFrac1.NumVertices = posPunti[1] - posPunti[0] + 1;
         newFrac1.vertices.resize(newFrac1.NumVertices);
         newFrac2.NumVertices = newVert.size() - newFrac1.NumVertices + 2;
         newFrac2.vertices.resize(newFrac2.NumVertices);
-        /*unsigned int idPunto0;
-        unsigned int idPunto1;
-        unsigned int idEdgeCut;*/
 
-        vector<Vector3d> newVertVec;
-        newVertVec.resize(newVert.size());
-        unsigned int i=0;
-        for(const Vector3d& v3: newVert){
-            newVertVec[i] = v3;
+        vector<Vector3d> newVertVec(newVert.size());
+        unsigned int i = 0;
+        for(const Vector3d& v3 : newVert) {
+            newVertVec[i]=v3;
             i++;
+            //cout << "Adding vertex: " << v3[0] << " " << v3[1] << " " << v3[2] << endl;
+
         }
-        //cout << "pre vertici" << endl;
-        for(int pv = posPunti[0]; pv<=posPunti[1]; pv++)
+        //cout << "newVertVec size: " << newVertVec.size() << endl;
+        //cout << "posPunti: " << posPunti[0] << ", " << posPunti[1] << endl;
+
+
+        for(int pv = posPunti[0]; pv<=posPunti[1]; pv++){
+            //cout << "punto prima figura" << endl;
             newFrac1.vertices[pv-posPunti[0]] = newVertVec[pv];
-            /*pm.Cell0DId.push_back(pm.numCell0D);
-            pm.MapCell0D[pm.numCell0D] = newVertVec[pv];
-
-            if(pv==posPunti[0])
-                idPunto0 = pm.numCell0D;
-            else if(pv==posPunti[1]){
-                idPunto1 = pm.numCell0D;
-                idEdgeCut = pm.numCell1D;
-                pm.Cell1DId.push_back(idEdgeCut);
-                pm.MapCell1D[idEdgeCut].push_back(idPunto0);
-                pm.MapCell1D[idEdgeCut].push_back(idPunto1);
-                pm.MapCell2DEdges[pm.numCell2D].push_back(pm.numCell1D++);
-            }
-
-            if(pv+1<posPunti[1]){
-                pm.Cell1DId.push_back((pm.numCell1D));
-                pm.MapCell1D[pm.numCell1D].push_back(pm.numCell0D);
-                pm.MapCell1D[pm.numCell1D].push_back(pm.numCell0D+1);
-                pm.MapCell2DEdges[pm.numCell2D].push_back(pm.numCell1D++);
-            }
-            pm.MapCell2DVertices[pm.numCell2D].push_back(pm.numCell0D++);
         }
-        cout << "num cele 0d: " << pm.numCell0D << endl;
-        pm.Cell2DId.push_back(pm.numCell2D++);*/
 
-        for( int pv = posPunti[1]; pv < newVert.size(); pv++)
+
+        for( int pv = posPunti[1]; pv < newVert.size(); pv++){
+            //cout << "punto seconda figura" << endl;
             newFrac2.vertices[pv-posPunti[1]] = newVertVec[pv];
-            /*if(pv==posPunti[1]){
-                //pm.Cell1DId.push_back((pm.numCell1D));
-                pm.MapCell1D[pm.numCell1D].push_back(idPunto1);
-                pm.MapCell1D[pm.numCell1D].push_back(idPunto1+1);
-                pm.MapCell2DEdges[pm.numCell2D].push_back(pm.numCell1D++);
-                pm.MapCell2DVertices[pm.numCell2D].push_back(idPunto1);
-            }
-            else{
-                pm.Cell0DId.push_back(pm.numCell0D);
-                pm.MapCell0D[pm.numCell0D] = newVertVec[pv];
-                pm.Cell1DId.push_back((pm.numCell1D));
-                pm.MapCell1D[pm.numCell1D].push_back(pm.numCell0D);
-                pm.MapCell1D[pm.numCell1D].push_back(pm.numCell0D+1);
-                pm.MapCell2DEdges[pm.numCell2D].push_back(pm.numCell1D++);
-                pm.MapCell2DVertices[pm.numCell2D].push_back(pm.numCell0D++);
-            }
         }
-        cout << "num cele 0d: " << pm.numCell0D << endl;*/
-        for( int pv = 0; pv <= posPunti[0]; pv++)
-            newFrac2.vertices[pv + (newVert.size() - posPunti[1])] = newVertVec[pv];
-            /*if(pv==posPunti[0]){
-                pm.MapCell2DVertices[pm.numCell2D].push_back(idPunto0);
-                pm.MapCell2DEdges[pm.numCell2D].push_back(idEdgeCut);
-            }
-            else{
-                pm.Cell0DId.push_back(pm.numCell0D);
-                pm.MapCell0D[pm.numCell0D] = newVertVec[pv];
-                pm.Cell1DId.push_back((pm.numCell1D));
-                pm.MapCell1D[pm.numCell1D].push_back(pm.numCell0D);
-                pm.MapCell1D[pm.numCell1D].push_back(pm.numCell0D+1);
-                pm.MapCell2DEdges[pm.numCell2D].push_back(pm.numCell1D++);
-                pm.MapCell2DVertices[pm.numCell2D].push_back(pm.numCell0D++);
-            }
-        }*/
-        //cout << "num cele 0d: " << pm.numCell0D << endl;
-        //pm.Cell2DId.push_back(pm.numCell2D++);
 
-        newfractures.push_back(newFrac1);
-        newfractures.push_back(newFrac2);
+        for( int pv = 0; pv <= posPunti[0]; pv++){
+            //.cout << "punto seconda figura" << endl;
+            newFrac2.vertices[pv + (newVert.size() - posPunti[1])] = newVertVec[pv];
+        }
+
+        newfractures[0] = newFrac1;
+        newfractures[1] = newFrac2;
+
+        /*cout << "frac1:" << endl;
+        for(int p = 0; p<newFrac1.NumVertices; p++){
+            for(int k=0; k<3; k++){
+                cout << newFrac1.vertices[p][k] << " ";
+            }
+            cout << endl;
+        }
+
+        cout << "frac2:" << endl;
+        for(int p = 0; p<newFrac2.NumVertices; p++){
+            for(int k=0; k<3; k++){
+                cout << newFrac2.vertices[p][k] << " ";
+            }
+            cout << endl;
+        }*/
 
         return newfractures;
     }
@@ -277,7 +296,7 @@ namespace FractureLibrary {
         for(unsigned int i=0; i<3; i++){
             if(abs(b[i]-a[i])>tol){
                t = (p[i] - a[i])/(b[i]-a[i]);
-                usata = i;
+               usata = i;
             }
         }
 
@@ -289,8 +308,11 @@ namespace FractureLibrary {
         for(unsigned int i=0; i<3; i++){
             if(i!=usata){
                 double y = a[i] + t*(b[i]-a[i]);
-                if(abs(p[i] - y)<tol)
+                //cout << "p[i]: " << p[i] << " y: " << y << endl;
+                if(abs(p[i] - y)<tol){
                     check[index] = true;
+
+                }
                 index++;
             }
         }
@@ -326,8 +348,9 @@ namespace FractureLibrary {
         converter >> N; // stampo il numero di fratture nel file
         mesh.NumFractures = N;
         mesh.FractureId.resize(N);
+        mesh.MapFractures.resize(N);
 
-        cout << "numero di fratture: " << mesh.NumFractures << endl;
+        //cout << "numero di fratture: " << mesh.NumFractures << endl;
 
         char sep;
         unsigned int id = 0;
@@ -344,7 +367,7 @@ namespace FractureLibrary {
             mesh.FractureId[i]=id;
             f.NumVertices = numvertices;
 
-            cout << "la fracture  " << mesh.FractureId[i] << " ha " << numvertices << " vertici" << endl;
+            //cout << "la fracture  " << mesh.FractureId[i] << " ha " << numvertices << " vertici" << endl;
             getline(file,line); // leggo riga vertici senza stamparla (vediamo se farlo tutto insieme le eliminazioni)
 
 
@@ -389,8 +412,8 @@ namespace FractureLibrary {
         //ciclo sui poigoni successivi
         for(unsigned int i=id+1; i<mesh.NumFractures; i++){
             bool inter = false;
-            vector<Vector3d> trace = {};
-            trace.resize(2);
+            vector<Vector3d> trace(2);
+            //trace.resize(2);
             Vector3d t = {};
             double distanzainF = 0;
             double distanzainFC = 0;
@@ -404,7 +427,7 @@ namespace FractureLibrary {
             //cout <<"Il piano "<< i << " ha equazione "<< planeFConf[0] <<"x + " <<planeFConf[1] <<"y + " <<planeFConf[2] <<"z + " << dFConf << "=0 "<<endl;
 
             if(planeF[0]==planeFConf[0] && planeF[1]==planeFConf[1] && planeF[2]==planeFConf[2] && dF == dFConf){ //condizone di complanarità
-                cout << "le figure "<< id <<" e " << i <<" sono complanari" << endl;
+                //cout << "le figure "<< id <<" e " << i <<" sono complanari" << endl;
                 /*for(int j=0; j<f.NumVertices; j++){
                     int &vert0 = j;
                     int vert1 = j+1;
@@ -426,12 +449,12 @@ namespace FractureLibrary {
             }
 
             else if(planeF[0]==planeFConf[0] && planeF[1]==planeFConf[1] && planeF[2]==planeFConf[2] && dF != dFConf){
-                cout << "le figure "<< id <<" e " << i <<" giacciono su piani paralleli" << endl;
+                //cout << "le figure "<< id <<" e " << i <<" giacciono su piani paralleli" << endl;
                 continue;
             }
 
             else if((dist(f.barycentre, fConf.barycentre) - (maxDist(f) + maxDist(fConf))) > tol ){
-                cout << "le figure "<< id <<" e " << i <<" sicuramente non si intersecano" << endl;
+                //cout << "le figure "<< id <<" e " << i <<" sicuramente non si intersecano" << endl;
                 continue;
 
             }
@@ -447,10 +470,10 @@ namespace FractureLibrary {
                 b[1] = -dFConf;
                 b[2] = 0.0;
 
-                if(A.determinant() == 0){
+                /*if(A.determinant() == 0){
                     //cout << "Le figure "<< id <<" e " << i <<" il deteminante è nullo ora non mi ricordo il perchè" << endl;
                     break; //questo non è di nuovo il caso di complanarità???
-                }
+                }*/
 
                 Vector3d p = PALUSolver(A, b);
 
@@ -459,7 +482,7 @@ namespace FractureLibrary {
 
                 if(intersectionsF.size()==0){ // se nessuno dei lati del poligono interseca la retta allora sicuramente i due poligono in esame
                                               // non si iintersecano -> passo a confromtarlo con un altro poligono
-                    cout << "Le figure " << id <<" e " << i <<" non si intersecano perche' la prima non e' attraversata dalla retta di intersezione tra i piani" << endl;
+                    //cout << "Le figure " << id <<" e " << i <<" non si intersecano perche' la prima non e' attraversata dalla retta di intersezione tra i piani" << endl;
                     continue;
                 }
 
@@ -468,7 +491,7 @@ namespace FractureLibrary {
                 vector<Vector3d> intersectionsFC = intersezionipoligonoretta(t,p,fConf);
 
                 if(intersectionsFC.size()==0){
-                    cout << "Le figure " << id <<" e " << i << " non si intersecano perche' la seconda non e' attraversata dalla retta di intersezione tra i piani" << endl;
+                    //cout << "Le figure " << id <<" e " << i << " non si intersecano perche' la seconda non e' attraversata dalla retta di intersezione tra i piani" << endl;
                     continue;
                 }
 
@@ -477,41 +500,40 @@ namespace FractureLibrary {
                 sort(intersectionsFC.begin(), intersectionsFC.end(), compareFirstElement);
 
                 if(intersectionsF[0][0] <= intersectionsFC[0][0]){
-                    if(intersectionsF[1][0]<intersectionsFC[0][0]){
-
-                        cout <<"Le figure "<< id <<" e " << i << " non si intersecano" << endl;
+                    if(abs(intersectionsF[1][0]-intersectionsFC[0][0])>tol && intersectionsF[1][0]<intersectionsFC[0][0]){
+                        //cout <<"Le figure "<< id <<" e " << i << " non si intersecano" << endl;
                         continue;
                     }
                     else if(intersectionsF[1][0] >= intersectionsFC[0][0] && intersectionsF[1][0]<= intersectionsFC[1][0]){
                         trace[0]=intersectionsFC[0];
                         trace[1]=intersectionsF[1];
-                        cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
+                        //cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
                         inter = true;
 
                     }
                     else if(intersectionsF[1][0]>=intersectionsFC[1][0]){                        
                         trace[0]=intersectionsFC[0];
                         trace[1]=intersectionsFC[1];
-                        cout << "LE DUE FIGURE " << id <<" e " << i <<" SI INTERSECANO" << endl;
+                        //cout << "LE DUE FIGURE " << id <<" e " << i <<" SI INTERSECANO" << endl;
                         inter = true;
                     }
 
                 }else if(intersectionsFC[0][0]<=intersectionsF[0][0]){
-                    if(intersectionsFC[1][0]<intersectionsF[0][0]){
-                        cout <<"Le figure "<< id <<" e " << i << " non si intersecano" << endl;
+                    if(abs(intersectionsFC[1][0]-intersectionsF[0][0])>tol && intersectionsFC[1][0]<intersectionsF[0][0]){
+                        //cout <<"Le figure "<< id <<" e " << i << " non si intersecano" << endl;
                         continue;
                     }
                     else if(intersectionsFC[1][0]>=intersectionsF[0][0] && intersectionsFC[1][0]<=intersectionsF[1][0]){
                         trace[0]=(intersectionsF[0]);
                         trace[1]=(intersectionsFC[1]);
-                        cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
+                        //cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
                         inter = true;
 
                     }
                     else if(intersectionsFC[1][0]>=intersectionsF[1][0]){
                         trace[0]=(intersectionsF[0]);
                         trace[1]=(intersectionsF[1]);
-                        cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
+                        //cout << "LE DUE FIGURE " << id <<" e " << i << " SI INTERSECANO" << endl;
                         inter = true;
                     }
                 }
@@ -537,7 +559,7 @@ namespace FractureLibrary {
                 newTrace.retta = t;
 
                 if(abs(lunghezzatraccia-distanzainF)<tol){
-                    cout << "figura " << id << " e' passante"<< endl;
+                    //cout << "figura " << id << " e' passante"<< endl;
                     f.listPas.push_back(newTrace);
                     f.tips[newTrace.id] = false;
 
@@ -547,7 +569,7 @@ namespace FractureLibrary {
                 }
 
                 if(abs(lunghezzatraccia-distanzainFC)<tol){
-                    cout << "figura " << i << " e' passante"<<endl;
+                    //cout << "figura " << i << " e' passante"<<endl;
                     fConf.listPas.push_back(newTrace);
                     fConf.tips[newTrace.id] = false;
 
@@ -572,13 +594,9 @@ namespace FractureLibrary {
             for(const auto &t: mesh.MapTrace){
                 outfile << t.first << "; " << t.second.fraId[0] << "; " << t.second.fraId[1] << "; ";
                 for(unsigned int i=0; i<2; i++){
-                    for(unsigned int j=0; j<3; j++){
-                        if(t.second.coordTrace[i][j]<tol){
-                            outfile << 0 << "; ";
-                        }
-                        else{
-                            outfile << scientific << setprecision(16)<< t.second.coordTrace[i][j] << "; ";
-                        }
+                    for(unsigned int j=0; j<3; j++){                      
+                        outfile << scientific << setprecision(16)<< t.second.coordTrace[i][j] << "; ";
+
                     }
                 }
                 outfile << endl;
@@ -594,8 +612,8 @@ namespace FractureLibrary {
         ofstream outfile(filepath);
         if (outfile.is_open()) {
             for(const auto &f: mesh.MapFractures){
-                outfile << "# FractureId; NumTraces" << endl << f.first << "; " << f.second.numFrac << endl << "# TraceId; Tips; Lenght" << endl;
-                for(const auto &t: f.second.tips){
+                outfile << "# FractureId; NumTraces" << endl << f.id << "; " << f.numFrac << endl << "# TraceId; Tips; Lenght" << endl;
+                for(const auto &t: f.tips){
                     outfile << t.first << "; ";
                     if(t.second){
                         outfile << "true; ";
@@ -613,44 +631,51 @@ namespace FractureLibrary {
         }
     }
 
-    PolygonalMesh newpolygon(FractureMesh& mesh){
+    /*PolygonalMesh newpolygon(FractureMesh& mesh){
 
         PolygonalMesh pm;
-
         unsigned int id = 0;
-        map<unsigned int, Fracture> MapNewFractures = {};
+        //map<unsigned int, Fracture> MapNewFractures = {};
 
-        for(const auto& coppia: mesh.MapFractures){
-            Fracture f = coppia.second;
+        for(const Fracture& f: mesh.MapFractures){
+            //Fracture &f = mesh.MapFractures[chiave];
 
-            /*map<unsigned int, Vector3d> MapCell0D = {};
-            map<unsigned int, list<unsigned int>> MapCell1D = {};
-            map<unsigned int, list<unsigned int>> MapCell2DEdges = {};*/
+            cout << "taglio della frattura " << f.id << endl;
 
-            list<Fracture> datagliare = {};
-            datagliare.push_back(f);
+            list<Fracture> datagliare = {f};
 
             for(const Trace& trace: f.listPas){
-                //cout << "la figura " << coppia.first << " ha numero tracce passanti: " << f.listPas.size() << endl;
+                unsigned int lun = datagliare.size();
 
-                list<Fracture> newfractures = {};
-                for(const Fracture& ff: datagliare){
-                    vector<Fracture> nfs = cuttingfractures(ff, trace ,pm);
+                for(unsigned int n=0; n<lun; n++){
+                    Fracture &ff = datagliare.front();
+                    vector<Fracture> nfs = cuttingfractures(ff, trace);
+                    datagliare.pop_front();
+                    cout << "dimensioni nfs: " << nfs.size() << endl;
+                    //cout << "dimensioni new frac: " << newfractures.size() << endl;
                     for(const Fracture& nf: nfs){
-                        newfractures.push_back(nf);
+                        datagliare.push_back(nf);
+
                     }
+
+                    cout << "datagliare: " << datagliare.size() << endl;
                 }
 
-                datagliare = newfractures;
-            }
 
+
+            }
+            cout << "datagliare " << datagliare.size() << endl;
+            cout << "inizio tracce non passanto" << endl;
 
             for(const Trace& trace: f.listNonpas){
-                //cout << "la figura " << coppia.first << " ha numero tracce non passanti: " << f.listNonpas.size() << endl;
-                list<Fracture> newfractures = {};
-                for(const Fracture& ff: datagliare){
-                    vector<Fracture> nfs ={};
-                    bool cut = false;
+
+                unsigned int lun = datagliare.size();
+
+                for(unsigned int n=0; n<lun; n++){
+                    Fracture &ff = datagliare.front();
+                    //cout << ff.vertices[0][0] << " " << ff.vertices[0][1] << " " << ff.vertices[0][2] << endl << ff.vertices[1][0] << " " << ff.vertices[1][1] << " " << ff.vertices[1][2] << endl;
+                    bool cutted = false;
+
                     for(unsigned int i=0; i<ff.NumVertices; i++){
                         unsigned int &vert0 = i;
                         unsigned int vert1 = i+1;
@@ -658,32 +683,305 @@ namespace FractureLibrary {
                             vert1 = i-(f.NumVertices-1);
                         }
                         if(onSegment(trace.coordTrace[0], ff.vertices[vert0], ff.vertices[vert1]) || onSegment(trace.coordTrace[1], ff.vertices[vert0], ff.vertices[vert1])){
-                            nfs = cuttingfractures(ff, trace ,pm);
-                            cut = true;
-                            for(const Fracture& nf: nfs){
-                                newfractures.push_back(nf);
-                            }
+                            cutted = true;
+
+                            cout << "datagliare: " << datagliare.size() << endl;
                             break;
                         }
+
                     }
-                    if(!cut)
-                        newfractures.push_back(ff);
+                    if(cutted){
+                        vector<Fracture> nfs = cuttingfractures(ff, trace);
+
+                        for(const Fracture& nf: nfs){
+                            datagliare.push_back(nf);
+                        }
+                        //cout << "added to the end: " << ff.vertices[0][0] << " " << ff.vertices[0][1] << " " << ff.vertices[0][2] << endl;
+                        //continue;
+                    }
+                    else{
+                        datagliare.push_back(ff);
+                    }
+                    datagliare.pop_front();
+
                 }
-                datagliare = newfractures;
+
             }
 
+            unsigned int lun = datagliare.size();
+            for(unsigned int n=0; n<lun; n++){
+                Fracture &nf = datagliare.front();
 
-            for(const Fracture& nf: datagliare){
-                MapNewFractures[id++] = nf;
-                cout << id-1 << ": " << endl;
+
+                cout << id << ": " << endl;
                 for(unsigned int j=0; j<nf.NumVertices; j++){
                     for(unsigned int k = 0; k<3; k++){
                         cout << nf.vertices[j][k] << " ";
                     }
                     cout << endl;
                 }
-
+                //datagliare.pop_front();
+                id++;
             }
+        }
+        // dalle fratture ricavati lati e vertici -> trova modo per non mettere gloi stessi due volte
+
+        return pm;
+    }*/
+
+    /*PolygonalMesh newpolygon(FractureMesh& mesh){
+
+        PolygonalMesh pm;
+
+        unsigned int id = 0;
+        //map<unsigned int, Fracture> MapNewFractures = {};
+
+        for(const Fracture& f: mesh.MapFractures){
+            //Fracture &f = mesh.MapFractures[chiave];
+
+            cout << "taglio della frattura " << f.id << endl;
+            //vector<Fracture> &nfs = cuttingfractures(f, trace ,pm);
+            /*map<unsigned int, Vector3d> MapCell0D = {};
+            map<unsigned int, list<unsigned int>> MapCell1D = {};
+            map<unsigned int, list<unsigned int>> MapCell2DEdges = {};*/
+            //vector<Fracture> newfracture = {f};
+            //list<Fracture> datagliare = {f};
+            /*datagliare.resize(1);
+            datagliare[0] = f;*/
+
+
+            //for(const Trace& trace: f.listPas){
+                //unsigned int newsize = 0;
+                //cout << trace.id << endl;
+                //cout << "la figura " << coppia.first << " ha numero tracce passanti: " << f.listPas.size() << endl;
+                //vector<vector<Fracture>> vecCut(f.listPas.size());
+                //newfractures.reserve(2*datagliare.size());
+                //list<Fracture> newfractures;
+               // unsigned int i = 0;
+                /*for(const Fracture &ff: datagliare){
+                    vector<Fracture> nfs = cuttingfractures(ff, trace);
+                    cout << "dim nfs: " << nfs.size() << endl;
+                    for(const Fracture& nf: nfs){
+                        newfractures.push_back(nf);
+
+                    }
+
+                    //vecCut[i++]=nfs;
+                    //newsize+=nfs.size();
+                }
+                datagliare = newfractures;
+                /*unsigned int c = 0;
+                unsigned int s = newfractures.size();
+                for(unsigned int i=0;  i<s; i++){
+                    if(newfractures[i] == Fracture{})
+                        c++;
+                }
+                newfractures.resize(s-c);*/
+
+                //datagliare.clear();
+                //datagliare.resize(newfractures.size());
+                //for(unsigned int i=0; i<newfractures.size();i++)
+                //    datagliare[i]=newfractures[i];
+                //newfractures.clear();
+                //}
+                //datagliare.resize(newfractures.size());
+                /*datagliare.resize(newsize);
+                unsigned int j = 0 ;
+                for(const auto& cut:vecCut){
+                    for(const Fracture& fra: cut){
+                        datagliare[j++] = fra;
+                    }
+                }*/
+
+
+
+            //}
+
+
+            /*for(const Trace& trace: f.listNonpas){
+                bool cutted = false;
+                //unsigned int newsize = 0;
+                //newfractures.clear();
+                //cout << trace.id << endl;
+                //cout << "la figura " << coppia.first << " ha numero tracce non passanti: " << f.listNonpas.size() << endl;
+                //vector<Fracture> newfractures = {};
+                //newfractures.reserve(datagliare.size()*2);
+                list<Fracture> newfractures;
+                //vector<vector<Fracture>> vecCut(f.listPas.size());
+                //newfractures.reserve(2*datagliare.size());
+                //unsigned int k = 0;
+                for(const Fracture& ff: datagliare){
+
+                    //bool cut = false;
+                    for(unsigned int i=0; i<ff.NumVertices; i++){
+                        unsigned int vert0 = i;
+                        unsigned int vert1 = i+1;
+                        if(i==f.NumVertices-1){
+                            vert1 = i-(f.NumVertices-1);
+                        }
+                        if(onSegment(trace.coordTrace[0], ff.vertices[vert0], ff.vertices[vert1]) || onSegment(trace.coordTrace[1], ff.vertices[vert0], ff.vertices[vert1])){
+                            vector<Fracture> nfs = cuttingfractures(ff, trace);
+                            //vecCut[k++]=nfs;
+                            cutted = true;
+                            //newsize+=nfs.size();
+                            /*if(nfs.size()==1)
+                                newfractures.resize(newfractures.size()-1);*/
+                            //for(const Fracture& nf: nfs){
+                            //    newfractures.push_back(nf);
+                            //}
+                            //nfs.clear();
+                            //break;
+                        //}
+
+                    //}
+                    //if(!cutted){
+                    //    newfractures.push_back(ff);
+                    //}
+
+                //}
+                //datagliare = newfractures;
+                /*unsigned int c = 0;
+                unsigned int s = newfractures.size();
+                for(unsigned int i=0;  i<s; i++){
+                    if(newfractures[i] == Fracture{})
+                        c++;
+                }
+                newfractures.resize(s-c);*/
+                //datagliare.clear();
+                //datagliare.resize(newfractures.size());
+                //for(unsigned int i=0; i<newfractures.size();i++)
+                //    datagliare[i]=newfractures[i];
+                //newfractures.clear();
+                //datagliare.resize(newfractures.size());
+                //datagliare = newfractures;
+                /*datagliare.resize(newsize);
+                unsigned int j = 0 ;
+                for(const auto& cut:vecCut){
+                    for(const Fracture& fra: cut){
+                        datagliare[j++] = fra;
+                    }
+                }*/
+            //}*/
+
+
+            /*for(const Fracture& nf: datagliare){
+                //MapNewFractures[id++] = nf;
+                cout << id << ": " << endl;
+                for(unsigned int j=0; j<nf.NumVertices; j++){
+                    for(unsigned int k = 0; k<3; k++){
+                        cout << nf.vertices[j][k] << " ";
+                    }
+                    cout << endl;
+                }
+                id++;
+            }
+        }
+        // dalle fratture ricavati lati e vertici -> trova modo per non mettere gloi stessi due volte
+
+        return pm;
+    }*/
+
+
+    PolygonalMesh newpolygon(FractureMesh& mesh){
+
+        PolygonalMesh pm;
+
+        unsigned int id = 0;
+        //map<unsigned int, Fracture> MapNewFractures = {};
+
+        for(const Fracture& f: mesh.MapFractures){
+            cout << "taglio della frattura " << f.id << endl;
+            //Fracture f = coppia.second;
+
+            /*map<unsigned int, Vector3d> MapCell0D = {};
+            map<unsigned int, list<unsigned int>> MapCell1D = {};
+            map<unsigned int, list<unsigned int>> MapCell2DEdges = {};*/
+
+            list<Fracture> datagliare;
+            datagliare.push_back(f);
+
+            for(const Trace& trace: f.listPas){
+                //cout << "la figura " << coppia.first << " ha numero tracce passanti: " << f.listPas.size() << endl;
+                cout << "trace id:" << trace.id << endl;
+
+                list<Fracture> newfractures;
+                for(const Fracture& ff: datagliare){
+                    vector<Fracture> nfs = cuttingfractures(ff, trace);
+                    for(const Fracture& nf: nfs){
+                        newfractures.push_back(nf);
+
+                    }
+                }
+                datagliare.clear();
+                datagliare = newfractures;
+            }
+
+            /*for(const Fracture& nf: datagliare){
+                //MapNewFractures[id++] = nf;
+                cout << id << ": " << endl;
+                cout << nf.NumVertices<<endl;
+                for(unsigned int j=0; j<nf.NumVertices; j++){
+                    for(unsigned int k = 0; k<3; k++){
+                        cout << nf.vertices[j][k] << " ";
+                    }
+                    cout << endl;
+                }
+                id++;
+            }*/
+
+
+
+            for(const Trace& trace: f.listNonpas){
+                //cout << "la figura " << coppia.first << " ha numero tracce non passanti: " << f.listNonpas.size() << endl;
+                cout << "trace (non passante) id:" << trace.id << endl;
+                list<Fracture> newfractures = {};
+                for(const Fracture& ff: datagliare){
+
+                    bool cut = false;
+                    if(isPointInsideFracture(trace.coordTrace[0], ff) | isPointInsideFracture(trace.coordTrace[1], ff)){
+                        vector<Fracture> nfs = cuttingfractures(ff, trace);
+                        cut = true;
+                        for(const Fracture& nf: nfs){
+                            newfractures.push_back(nf);
+                        }
+                    }
+                    /*for(unsigned int i=0; i<ff.NumVertices; i++){
+                        unsigned int &vert0 = i;
+                        unsigned int vert1 = i+1;
+                        if(i==f.NumVertices-1){
+                            vert1 = i-(f.NumVertices-1);
+                        }
+                        /*for(unsigned int co =0; co<3; co++){
+                            if(trace.coordTrace[0][co]>= min(ff.v)
+                        }*/
+
+
+                    //}
+                    if(!cut){
+                        //cout << "questa traccia non la taglia" << endl;
+                        newfractures.push_back(ff);
+                    }
+                }
+                datagliare = newfractures;
+            }
+
+
+            for(const Fracture& nf: datagliare){
+                //MapNewFractures[id++] = nf;
+                cout << id << ": " << endl;
+                //cout << nf.NumVertices<<endl;
+                for(unsigned int j=0; j<nf.NumVertices; j++){
+                    for(unsigned int k = 0; k<3; k++){
+                        if(abs(nf.vertices[j][k])<tol)
+                            cout << scientific << setprecision(16) << 0.0 << " ";
+                        else
+                            cout << scientific << setprecision(16) << nf.vertices[j][k] << " ";
+                    }
+                    cout << endl;
+                }
+                id ++;
+            }
+            datagliare.clear();
         }
         // dalle fratture ricavati lati e vertici -> trova modo per non mettere gloi stessi due volte
 
