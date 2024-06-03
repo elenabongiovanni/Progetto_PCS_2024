@@ -18,7 +18,7 @@ namespace FractureLibrary
 
     vector<Vector3d> intersezionipoligonoretta(const Vector3d& t, const Vector3d p, const Fracture& f);
 
-    vector<Fracture> cuttingfractures(const Fracture& f, const Trace& t);
+    vector<Fracture> cuttingfractures(const Fracture& f, const Trace& t, PolygonalMesh& pm);
 
     VectorXd PALUSolver(const MatrixXd& a, const VectorXd& b);
 
@@ -40,7 +40,9 @@ namespace FractureLibrary
 
     void printingfractures(FractureMesh& mesh, const string& file);
 
-    PolygonalMesh newpolygon(FractureMesh& mesh);
+    vector<PolygonalMesh> newpolygon(FractureMesh& mesh);
+
+    void printingPolygonMesh(const vector<PolygonalMesh>& pm, const string& file);
 
 }
 #endif // UTILS_HPP

@@ -19,7 +19,7 @@ struct Trace
     //map<unsigned int, bool> fracturesTrace ={};
     vector<Vector3d> coordTrace = {};
     double len = 0.0;
-    unsigned int id;
+    unsigned int id = 0;
     Vector3d retta = {};
 
 };
@@ -36,6 +36,10 @@ struct Fracture
     list<Trace> listNonpas = {};
     map<unsigned int, bool> tips = {};
     unsigned int numFrac = 0;
+    //map<unsigned int, vector<Vector3d>> intersectionRettaTraccia = {};
+    //Vector3d normalePiano = {};
+    list<unsigned int> idvertici = {};
+    list<unsigned int> idlati = {};
 
 };
 
@@ -68,7 +72,7 @@ struct PolygonalMesh
 
     unsigned int numCell1D = 0;
     list<unsigned int> Cell1DId = {};
-    map<unsigned int, list<unsigned int>> MapCell1D = {};
+    map<unsigned int, vector<unsigned int>> MapCell1D = {};
 
     unsigned int numCell2D = 0;
     list<unsigned int> Cell2DId = {};

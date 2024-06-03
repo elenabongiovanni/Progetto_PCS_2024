@@ -58,9 +58,10 @@ int main(int argc, char ** argv)
     //for(unsigned int i=0; i<mesh.NumFractures-1; i++){
     findIntersections(mesh);
     printingtraces(mesh, filepath);
-    //printingfractures(mesh, filepath);*/
+    printingfractures(mesh, filepath);
 
-    PolygonalMesh p = newpolygon(mesh);
+    vector<PolygonalMesh> pp= newpolygon(mesh);
+    printingPolygonMesh(pp, filepath);
 
     /*for(unsigned int id: p.Cell0DId){
         cout << id << " ";
