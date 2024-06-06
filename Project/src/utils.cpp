@@ -15,7 +15,32 @@ using namespace Eigen;
 namespace FractureLibrary {
 
     double tol = 10 * numeric_limits<double>::epsilon();
+    unsigned int idTrace = 0;
 
+    void defNewTrace(Trace& t, const double& d1, const double& d2, Fracture& f1, Fracture& f2, FractureMesh& fm){
+        double lunghezzatraccia = dist(t.coordTrace[0],t.coordTrace[1]);
+        t.len = lunghezzatraccia;
+        t.id = idTrace;
+        fm.MapTrace[idTrace++] = t;
+        f1.numFrac++;
+        f2.numFrac++;
+        //t.retta = t;
+
+        if(abs(lunghezzatraccia-d1)<tol){
+            f1.listPas.push_back(t);
+            f1.tips[t.id] = false;
+        }else{
+            f1.listNonpas.push_back(t);
+            f1.tips[t.id] = true;
+        }
+        if(abs(lunghezzatraccia - d2)<tol){
+            f2.listPas.push_back(t);
+            f2.tips[t.id] = false;
+        }else{
+            f2.listNonpas.push_back(t);
+            f2.tips[t.id] = true;
+        }
+    }
 
 
 
@@ -28,13 +53,13 @@ namespace FractureLibrary {
             lato2F[j] = f.vertices[3][j] - f.vertices[0][j];
         }
         //normalizzo i lati
-        double lato1Fn = lato1F.squaredNorm();
-        double lato2Fn = lato2F.squaredNorm();
+        //double lato1Fn = lato1F.squaredNorm();
+        //double lato2Fn = lato2F.squaredNorm();
         //calcolo il vettore normale e lo normalizzo
-        Vector3d planeF = {};
-        planeF[0] = (lato1F[1]*lato2F[2] - lato1F[2]*lato2F[1])/(lato1Fn*lato2Fn);
+        Vector3d planeF = lato1F.cross(lato2F);
+        /*planeF[0] = (lato1F[1]*lato2F[2] - lato1F[2]*lato2F[1])/(lato1Fn*lato2Fn);
         planeF[1] = (lato1F[2]*lato2F[0] - lato1F[0]*lato2F[2])/(lato1Fn*lato2Fn);
-        planeF[2] = (lato1F[0]*lato2F[1] - lato1F[1]*lato2F[0])/(lato1Fn*lato2Fn);
+        planeF[2] = (lato1F[0]*lato2F[1] - lato1F[1]*lato2F[0])/(lato1Fn*lato2Fn);*/
         return planeF;
     }
 
@@ -342,10 +367,8 @@ namespace FractureLibrary {
                usata = i;
             }
         }
-
         if((t<0.0)||(t>1.0))
             return false;
-
         vector<bool> check(2,false);
         unsigned int index = 0;
         for(unsigned int i=0; i<3; i++){
@@ -354,7 +377,6 @@ namespace FractureLibrary {
                 //cout << "p[i]: " << p[i] << " y: " << y << endl;
                 if(abs(p[i] - y)<tol){
                     check[index] = true;
-
                 }
                 index++;
             }
@@ -370,10 +392,8 @@ namespace FractureLibrary {
     {
         ifstream file;
         file.open(filename);
-
         if(file.fail())
             return false;
-
         string line;
         int N = 0;
         int i = 0;
@@ -442,7 +462,7 @@ namespace FractureLibrary {
 
     }
 
-    unsigned int idTrace = 0;
+
 
     void findIntersections(FractureMesh &mesh){
         for(unsigned int id = 0; id<mesh.NumFractures; id++){
@@ -459,23 +479,19 @@ namespace FractureLibrary {
                 vector<Vector3d> trace = {};
                 trace.resize(2);
                 Vector3d t = {};
-                //vector<Vector3d> intersectionsF;
-                //vector<Vector3d> intersectionsFC;
                 double distanzainF = 0;
                 double distanzainFC = 0;
 
                 Fracture &fConf = mesh.MapFractures[i];
 
                 Vector3d planeFConf = calcoloPiano(fConf);
-                //fConf.normalePiano = planeFConf;
                 double dFConf = -(planeFConf[0] * fConf.vertices[0][0]) - (planeFConf[1] * fConf.vertices[0][1]) - (planeFConf[2] * fConf.vertices[0][2]);
 
-                //cout <<"Il piano "<< id << " ha equazione "<< planeF[0] <<"x + " <<planeF[1] <<"y + " <<planeF[2] <<"z + " << dF << " = 0 "<<endl;
-                //cout <<"Il piano "<< i << " ha equazione "<< planeFConf[0] <<"x + " <<planeFConf[1] <<"y + " <<planeFConf[2] <<"z + " << dFConf << "=0 "<<endl;
 
-                if(planeF[0]==planeFConf[0] && planeF[1]==planeFConf[1] && planeF[2]==planeFConf[2] && dF == dFConf){ //condizone di complanarità
-                    //cout << "le figure "<< id <<" e " << i <<" sono complanari" << endl;
-                    /*for(int j=0; j<f.NumVertices; j++){
+                if(planeF.cross(planeFConf)==0){
+                    if(abs(planeF[0]*dFConf - planeFConf[0]*dF)<tol){
+                        //sono complanari
+                        /*for(int j=0; j<f.NumVertices; j++){
                         int &vert0 = j;
                         int vert1 = j+1;
                         if(j==f.NumVertices-1){
@@ -490,15 +506,30 @@ namespace FractureLibrary {
                             }
 
                     }*/
-
-
-                    continue;
+                        continue;
+                    }
+                    else{
+                        //sono paralleli
+                        continue;
+                    }
                 }
 
-                else if(planeF[0]==planeFConf[0] && planeF[1]==planeFConf[1] && planeF[2]==planeFConf[2] && dF != dFConf){
+
+                //cout <<"Il piano "<< id << " ha equazione "<< planeF[0] <<"x + " <<planeF[1] <<"y + " <<planeF[2] <<"z + " << dF << " = 0 "<<endl;
+                //cout <<"Il piano "<< i << " ha equazione "<< planeFConf[0] <<"x + " <<planeFConf[1] <<"y + " <<planeFConf[2] <<"z + " << dFConf << "=0 "<<endl;
+
+                //if(planeF[0]==planeFConf[0] && planeF[1]==planeFConf[1] && planeF[2]==planeFConf[2] && dF == dFConf){ //condizone di complanarità
+                    //cout << "le figure "<< id <<" e " << i <<" sono complanari" << endl;
+
+
+
+                    //continue;
+                //}
+
+                /*else if(planeF[0]==planeFConf[0] && planeF[1]==planeFConf[1] && planeF[2]==planeFConf[2] && dF != dFConf){
                     //cout << "le figure "<< id <<" e " << i <<" giacciono su piani paralleli" << endl;
                     continue;
-                }
+                }*/
 
                 else if((dist(f.barycentre, fConf.barycentre) - (maxDist(f) + maxDist(fConf))) > tol ){
                     //cout << "le figure "<< id <<" e " << i <<" sicuramente non si intersecano" << endl;
@@ -517,9 +548,8 @@ namespace FractureLibrary {
                     b[1] = -dFConf;
                     b[2] = 0.0;
 
-                    if(A.determinant() == 0){
-                        //cout << "Le figure "<< id <<" e " << i <<" il deteminante è nullo ora non mi ricordo il perchè" << endl;
-                        break; //questo non è di nuovo il caso di complanarità???
+                    if(A.determinant() == 0){                        
+                        break; //di nuovo il caso di complanarità, controlliamo solo per sicurezza
                     }
 
                     Vector3d p = PALUSolver(A, b);
@@ -597,41 +627,15 @@ namespace FractureLibrary {
                 }
 
                 if(inter){
+
                     Trace newTrace;
                     newTrace.coordTrace.resize(2);
                     newTrace.fraId[0] =id;
                     newTrace.fraId[1] = i;
                     newTrace.coordTrace = trace;
-                    double lunghezzatraccia = dist(trace[0],trace[1]);
-                    newTrace.len = lunghezzatraccia;
-                    newTrace.id = idTrace;
-                    mesh.MapTrace[idTrace] = newTrace;
-                   //f.intersectionRettaTraccia[idTrace] = intersectionsF[1];
-                    //fConf.intersectionRettaTraccia[idTrace] = intersectionsFC[1];
-                    idTrace++;
-                    f.numFrac++;
-                    fConf.numFrac++;
                     newTrace.retta = t;
 
-                    if(abs(lunghezzatraccia-distanzainF)<tol){
-                        //cout << "figura " << id << " e' passante"<< endl;
-                        f.listPas.push_back(newTrace);
-                        f.tips[newTrace.id] = false;
-
-                    }else{
-                        f.listNonpas.push_back(newTrace);
-                        f.tips[newTrace.id] = true;
-                    }
-
-                    if(abs(lunghezzatraccia-distanzainFC)<tol){
-                        //cout << "figura " << i << " e' passante"<<endl;
-                        fConf.listPas.push_back(newTrace);
-                        fConf.tips[newTrace.id] = false;
-
-                    }else{
-                        fConf.listNonpas.push_back(newTrace);
-                        fConf.tips[newTrace.id] = true;
-                    }
+                    defNewTrace(newTrace, distanzainF, distanzainFC, f, fConf, mesh);
                 }
             }
 
