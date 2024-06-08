@@ -29,7 +29,7 @@ int main(int argc, char ** argv)
                                     //DFN/FR362_data.txt
     //getline(cin, filepath);
 
-    if(!ImportFR_data(filepath,mesh)){
+    if(!ImportFR_data(filepath, mesh)){
         return 2;
     }
 

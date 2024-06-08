@@ -58,6 +58,7 @@ add_executable(${PROJECT_NAME}
         src/utils.cpp
     src/dfn.hpp
     src/utils.hpp
+    src/dfn.cpp
 )
 #file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/DFN DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(${PROJECT_NAME} ${DFN_LINKED_LIBRARIES})

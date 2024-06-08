@@ -40,6 +40,9 @@ struct Fracture
     //Vector3d normalePiano = {};
     list<unsigned int> idvertici = {};
     list<unsigned int> idlati = {};
+    vector<double> plane = {};
+    map<unsigned int, bool> onEdge ={};
+    bool isOnEdge = false;
 
 };
 
@@ -79,6 +82,24 @@ struct PolygonalMesh
     map<unsigned int, list<unsigned int>> MapCell2DVertices = {};
     map<unsigned int, list<unsigned int>> MapCell2DEdges = {};
 };
+
+
+vector<Fracture> cuttingfractures(Fracture& f, const Trace& t, PolygonalMesh& pm);
+
+bool ImportFR_data(const string &filename, FractureMesh& mesh);
+
+void findIntersections(FractureMesh &mesh);
+
+vector<PolygonalMesh> newpolygon(FractureMesh& mesh);
+
+void printingPolygonMesh(const vector<PolygonalMesh>& pm, const string& file);
+
+void defNewTrace(Trace& t, const double& d1, const double& d2, Fracture& f1, Fracture& f2, FractureMesh& fm);
+
+void printingtraces(FractureMesh& mesh, const string& file);
+
+void printingfractures(FractureMesh& mesh, const string& file);
+
 
 
 }
