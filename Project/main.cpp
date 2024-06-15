@@ -2,12 +2,15 @@
 #include "Eigen/Eigen"
 #include "map"
 #include "dfn.hpp"
-#include "utils.hpp"
+//#include "utils.hpp"
 #include <iomanip>
 #include <fstream>
+//#include "poligonalMesh.hpp"
 
 using namespace std;
+using namespace Eigen;
 using namespace FractureLibrary;
+//using namespace Polygon;
 
 int main(int argc, char ** argv)
 {
@@ -20,14 +23,7 @@ int main(int argc, char ** argv)
     string name;
     str >> name;
     string filepath = "DFN/" + name + ".txt";
-    //cout << "Insert filepath: ";    //scegli tra
-                                    //DFN/FR3_data.txt
-                                    //DFN/FR10_data.txt
-                                    //DFN/FR50_data.txt
-                                    //DFN/FR82_data.txt
-                                    //DFN/FR200_data.txt
-                                    //DFN/FR362_data.txt
-    //getline(cin, filepath);
+
 
     if(!ImportFR_data(filepath, mesh)){
         return 2;
@@ -57,10 +53,10 @@ int main(int argc, char ** argv)
 
     //for(unsigned int i=0; i<mesh.NumFractures-1; i++){
     findIntersections(mesh);
-    printingtraces(mesh, filepath);
-    printingfractures(mesh, filepath);
+    mesh.printingtraces(filepath);
+    mesh.printingfractures(filepath);
 
-    vector<PolygonalMesh> pp= newpolygon(mesh);
+    vector<PolygonalMesh> pp = newpolygon(mesh);
     printingPolygonMesh(pp, filepath);
 
     /*for(unsigned int id: p.Cell0DId){

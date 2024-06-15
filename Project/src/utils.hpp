@@ -1,4 +1,4 @@
-#ifndef UTILS_HPP
+/*#ifndef UTILS_HPP
 #define UTILS_HPP
 
 #include "dfn.hpp"
@@ -15,10 +15,10 @@ namespace GeometryHelpers
 
     //bool isPointInsideFracture(const Vector3d& p, const Fracture& f);
 
-    Vector3d calcoloPiano(Fracture& f);
+    //Vector3d calcoloPiano(Fracture& f);
 
     vector<Vector3d> intersezionipoligonoretta(const Vector3d& t, const Vector3d p, Fracture& f);
-    vector<unsigned int> intersezionipoligonorettaLATI(const Vector3d& t, const Vector3d p, const Fracture& f);
+    vector<unsigned int> intersezionipoligonorettaLATI(const Vector3d& t, const Vector3d p, const Fracture& f, vector<unsigned int>toRemove);
 
     //vector<Fracture> cuttingfractures(const Fracture& f, const Trace& t, PolygonalMesh& pm);
 
@@ -30,7 +30,7 @@ namespace GeometryHelpers
 
     double dist(Vector3d v1, Vector3d v2);
 
-    double maxDist(Fracture f);
+    //double maxDist(Fracture f);
 
     bool onSegment(const Vector3d& p, const Vector3d& a, const Vector3d& b);
 

@@ -1,5 +1,6 @@
-#include "dfn.hpp"
+/*#include "dfn.hpp"
 #include "utils.hpp"
+#include "poligonalMesh.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -11,6 +12,7 @@
 
 using namespace std;
 using namespace Eigen;
+using namespace Polygon;
 
 namespace GeometryHelpers {
 
@@ -40,26 +42,37 @@ bool  sameLine(const Vector3d& retta, const Fracture& f, vector<Vector3d> coordi
     }
 
 
-    Vector3d calcoloPiano(Fracture& f){
-        Vector3d lato1F = {};
-        Vector3d lato2F = {};
-        //calcolo 2 lati
-        for(unsigned int j =0; j<3; j++){
-            lato1F[j] = f.vertices[1][j] - f.vertices[0][j];
-            lato2F[j] = f.vertices[3][j] - f.vertices[0][j];
-        }
 
-        Vector3d planeF = lato1F.cross(lato2F);
-        double d = -(planeF[0] * f.vertices[0][0]) - (planeF[1] * f.vertices[0][1]) - (planeF[2] * f.vertices[0][2]);
-        f.plane.reserve(4);
-        for(unsigned int i=0; i<3; i++){
-            f.plane.push_back(planeF[i]);
+
+    bool intersLato(const Vector3d& t, Vector3d& p,  const Cell1d c1d, bool angolo, Vector3d& inters, PolygonalMesh& pm){
+        Vector3d tr;
+        Vector3d& p1 = pm.MapCell0D.at(c1d.extremes[0]);
+        Vector3d& p2 = pm.MapCell0D.at(c1d.extremes[1]);
+        tr[0] = p1[0] - p2[0];
+        tr[1] = p1[1] - p2[1];
+        tr[2] = p1[2] - p2[2];
+
+        Vector3d prod_t_t1 = t.cross(tr);
+        Vector3d prod_t_p = (p-p2).cross(t);
+        //Vector3d prod_t1_p = (f.vertices[vert1]-p).cross(tr);
+
+        double alfa = (prod_t_p.dot(prod_t_t1))/(prod_t_t1.dot(prod_t_t1));
+        //double beta = (prod_t1_p.dot(prod_t_t1))/(prod_t_t1.dot(prod_t_t1));
+
+        if(alfa>=0 && alfa <=1){
+            for(unsigned int i=0; i<3; i++){
+                inters[i] = p1[i]*alfa + (1-alfa)*p2[i];
+            }
+            if(abs(inters[0] - p1[0])<tol && abs(inters[1] - p1[1])<tol && abs(inters[2] - p1[2])<tol){
+                angolo = true;
+            }
+            return true;
         }
-        f.plane.push_back(d);
-        return planeF;
+        else
+            return false;
     }
 
-    vector<unsigned int> intersezionipoligonorettaLATI(const Vector3d& t, const Vector3d p, const Fracture& f){
+    /*vector<unsigned int> intersezionipoligonorettaLATI(const Vector3d& t, const Vector3d p, const Fracture& f, vector<unsigned int>toRemove){
         vector<unsigned int> intersectionsF = {};
         intersectionsF.reserve(2);
         unsigned int index = 0;
@@ -86,14 +99,18 @@ bool  sameLine(const Vector3d& retta, const Fracture& f, vector<Vector3d> coordi
             }
 
             if(intersectionsF.size()==2){
-                //cout << "il primo poligono è tagliato" << endl;
+                if(abs(intersectionsF[0][0] - intersectionsF[1][0])<tol &&  abs(intersectionsF[0][1] - intersectionsF[1][1])<tol &&
+                    abs(intersectionsF[0][2] - intersectionsF[1][2])<tol ){
+                    intersectionsF.pop_back();
+                    continue;
+                }
                 break;  //esco dal ciclo perchè di nuovo non è posisbile che una retta intersechi un poligono in più di due punti
             }           // potremmo anche mettere questo if fuori dall'else e levare il break prima , come ci piace di più
         }
         return intersectionsF;
-    }
+    }*/
 
-    vector<Vector3d> intersezionipoligonoretta(const Vector3d& t, const Vector3d p, Fracture& f){
+    /*vector<Vector3d> intersezionipoligonoretta(const Vector3d& t, const Vector3d p, Fracture& f){
         vector<Vector3d> intersectionsF = {};
         intersectionsF.reserve(2);
 
@@ -127,8 +144,11 @@ bool  sameLine(const Vector3d& retta, const Fracture& f, vector<Vector3d> coordi
             }
 
             if(intersectionsF.size()==2){
-                if(intersectionsF[0] == intersectionsF[1]){
+                if(abs(intersectionsF[0][0] - intersectionsF[1][0])<tol &&  abs(intersectionsF[0][1] - intersectionsF[1][1])<tol &&
+                    abs(intersectionsF[0][2] - intersectionsF[1][2])<tol ){
                     intersectionsF.pop_back();
+                    toRemove.push_back(l);
+                    continue;
                 }
                 //cout << "il primo poligono è tagliato" << endl;
                 break;  //esco dal ciclo perchè di nuovo non è posisbile che una retta intersechi un poligono in più di due punti
@@ -163,16 +183,7 @@ bool  sameLine(const Vector3d& retta, const Fracture& f, vector<Vector3d> coordi
         return sqrt(sum);
     }
 
-    //calcolo distanza massima dal baricentro
-    double maxDist(Fracture f){
-        double r = 0.0;
-        for(unsigned int i=0; i< f.NumVertices; i++){
-            double d = dist(f.barycentre, f.vertices[i]);
-            if(d>r)
-                r = d;
-        }
-        return r;
-    }
+
 
     //controllo se un punto appartiene ad un segmento
     bool onSegment(const Vector3d& p, const Vector3d& a, const Vector3d& b){
@@ -235,4 +246,4 @@ bool  sameLine(const Vector3d& retta, const Fracture& f, vector<Vector3d> coordi
         }
     }
 
-}
+}*/

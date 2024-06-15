@@ -55,10 +55,11 @@ add_executable(${PROJECT_NAME}
         main.cpp
         ${${CMAKE_PROJECT_NAME}_sources}
         ${${CMAKE_PROJECT_NAME}_headers}
-        src/utils.cpp
+        #src/utils.cpp
     src/dfn.hpp
-    src/utils.hpp
+    #src/utils.hpp
     src/dfn.cpp
+    #src/poligonalMesh.hpp
 )
 #file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/DFN DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(${PROJECT_NAME} ${DFN_LINKED_LIBRARIES})
