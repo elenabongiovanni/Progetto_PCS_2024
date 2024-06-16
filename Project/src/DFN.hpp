@@ -76,7 +76,7 @@ struct Fracture
 
         Vector3d planeF = lato1F.cross(lato2F);
         double d = -(planeF[0] * vertices[0][0]) - (planeF[1] * vertices[0][1]) - (planeF[2] * vertices[0][2]);
-        cout << "d: " << d << endl;
+        //cout << "d: " << d << endl;
         plane.reserve(4);
         for(unsigned int i=0; i<3; i++){
             plane.push_back(planeF[i]);
@@ -245,19 +245,12 @@ struct PolygonalMesh
         numFrac = c2.numFrac;
     }
 
-    void addingStuff(vector<bool>& angolo, vector<unsigned int> idLatitagliati, vector<Cell1d>& forming, vector<Cell0d>& forming0d, Cell2d& c2new1, Cell2d& c2new2, unsigned int& id2d, list<Cell2d>& next){
+    void addingStuff( vector<unsigned int> idLatitagliati, vector<Cell1d>& forming, vector<Cell0d>& forming0d, Cell2d& c2new1, Cell2d& c2new2, unsigned int& id2d, list<Cell2d>& next){
         unsigned int pos = 0;
-        if(!angolo[0] && !angolo[1]){
-            for(const unsigned int& id: idLatitagliati){
-                MapCell1D.at(id).old = true;
-                MapCell1D.at(id).tobecome.push_back(forming[pos++]);
-                MapCell1D.at(id).tobecome.push_back(forming[pos++]);
-            }
-        }
-        else if((angolo[0] && !angolo[1]) || (angolo[1] && !angolo[0])){
-            MapCell1D.at(idLatitagliati[0]).old = true;
-            MapCell1D.at(idLatitagliati[0]).tobecome.push_back(forming[pos++]);
-            MapCell1D.at(idLatitagliati[0]).tobecome.push_back(forming[pos++]);
+        for(const unsigned int& id: idLatitagliati){
+            MapCell1D.at(id).old = true;
+            MapCell1D.at(id).tobecome.push_back(forming[pos++]);
+            MapCell1D.at(id).tobecome.push_back(forming[pos++]);
         }
 
         Cell2DId.push_back(c2new1.id);
@@ -301,56 +294,23 @@ struct PolygonalMesh
                             //bool toAdd=true;
                             Cell1d& c1 = MapCell1D.at(id).tobecome[0];
                             Cell1d& c2 = MapCell1D.at(id).tobecome[1];
-                            if(MapCell0D.at(c1.extremes[0]).id==idvert0){
-                                c2new3.Cell2DVertices.push_back(MapCell0D.at(c1.extremes[1]));
-                                //c2new3.Cell2DVertices.push_back(MapCell0D.at(c2.extremes[1]));
-                                c2new3.Cell2DEdges.push_back(c1);
-                                listaidlati.push_back(c1.id);
-                                c2new3.Cell2DEdges.push_back(c2);
-                                listaidlati.push_back(c2.id);
 
-                            /*}else if(MapCell0D.at(c1.extremes[1]).id==idvert0){
-                                c2new3.Cell2DVertices.push_back(MapCell0D.at(c1.extremes[0]));
-                                c2new3.Cell2DVertices.push_back(MapCell0D.at(c2.extremes[0]));
-                            }else if(MapCell0D.at(c2.extremes[0]).id==idvert0){
-                                c2new3.Cell2DVertices.push_back(MapCell0D.at(c2.extremes[1]));
-                                c2new3.Cell2DVertices.push_back(MapCell0D.at(c1.extremes[1])); */
-                            }else if(MapCell0D.at(c2.extremes[1]).id==idvert0){
-                                c2new3.Cell2DVertices.push_back(MapCell0D.at(c2.extremes[0]));
-                                //c2new3.Cell2DVertices.push_back(MapCell0D.at(c1.extremes[0]));
-                                c2new3.Cell2DEdges.push_back(c2);
-                                listaidlati.push_back(c2.id);
-                                c2new3.Cell2DEdges.push_back(c1);
-                                listaidlati.push_back(c1.id);
-                                listaidvertici.push_back(c2.extremes[0]);
-                            }
-
-                            /*for(Cell1d& c1: MapCell1D.at(id).tobecome){
-                                if(MapCell0D.at(c1.extremes[1]).id!=idvert0 && toAdd){
-                                    c2new3.Cell2DVertices.push_back(MapCell0D.at(c1.extremes[1]));
-                                    listaidvertici.push_back(c1.extremes[1]);
-                                    toAdd=false;
-                                }
-                                else if(MapCell0D.at(c1.extremes[1]).id==idvert0 && toAdd){
-                                    c2new3.Cell2DVertices.push_back(MapCell0D.at(c1.extremes[0]));
-                                    listaidvertici.push_back(c1.extremes[0]);
-                                    toAdd=false;
-                                }*/
-
-                                //c2new3.Cell2DVertices.push_back(MapCell0D.at(c1.extremes[1]));
-                            /*c2new3.Cell2DEdges.push_back(c2);
+                            c2new3.Cell2DVertices.push_back(MapCell0D.at(c2.extremes[0]));
+                            //c2new3.Cell2DVertices.push_back(MapCell0D.at(c1.extremes[0]));
+                            c2new3.Cell2DEdges.push_back(c2);
                             listaidlati.push_back(c2.id);
                             c2new3.Cell2DEdges.push_back(c1);
-                            listaidlati.push_back(c1.id);*/
-                                //listaidvertici.push_back(c1.extremes[0]);
-                                //listaidvertici.push_back(c1.extremes[1]);
-
+                            listaidlati.push_back(c1.id);
+                            listaidvertici.push_back(c2.extremes[0]);
+                            MapCell1D.at(c1.id).touched2D.push_back(c2new3.id);
+                            MapCell1D.at(c2.id).touched2D.push_back(c2new3.id);
 
                         }else{
                             c2new3.Cell2DVertices.push_back(MapCell0D.at(idvert0));
                             c2new3.Cell2DEdges.push_back(MapCell1D.at(lati.id));
                             listaidvertici.push_back(idvert0);
                             listaidlati.push_back(lati.id);
+                            MapCell1D.at(lati.id).touched2D.push_back(c2new3.id);
                         }
                         vert++;
                     }
@@ -361,6 +321,9 @@ struct PolygonalMesh
                     MapCell2DVertices[id2d] = listaidvertici;
                     MapCell2DEdges[id2d++] = listaidlati;
                     next.push_back(c2new3);
+                    MapCell1D.at(id).tobecome[0].touched2D.push_back(c2new3.id);
+                    MapCell1D.at(id).tobecome[1].touched2D.push_back(c2new3.id);
+
                 }
             }
         }
@@ -373,7 +336,7 @@ struct PolygonalMesh
 
 bool cuttingfractures(Cell2d& f, const Trace& t, PolygonalMesh& polyMesh, vector<Cell2d>next);
 
-bool intersLato(const Vector3d& t, const Cell0d& c1, const Cell0d& c2, bool angolo, Vector3d& inters, PolygonalMesh& pm);
+bool intersLato(const Trace& t, const Cell0d& c1, const Cell0d& c2, Vector3d& inters, const PolygonalMesh& pm);
 
 bool ImportFR_data(const string &filename, FractureMesh& mesh);
 
@@ -403,7 +366,7 @@ bool onSegment(const Vector3d& p, const Vector3d& a, const Vector3d& b);
 
 void intersezioniSuRetta(bool& bole, vector<Vector3d>& trace, vector<Vector3d>& s1, vector<Vector3d>& s2);
 
-bool sameLine(const Vector3d& retta, const Vector3d& p, const Fracture& f, vector<Vector3d> coordinate);
+bool sameLine(const Vector3d& retta, const Vector3d& p, const vector<Vector3d>& f, vector<Vector3d> coordinate);
 
 vector<PolygonalMesh> newpolygon(FractureMesh& mesh);
 
