@@ -293,9 +293,9 @@ void printingtraces(const string& file);
 
 void printingfractures(const string& file);
 
-vector<Vector3d> intersezionipoligonoretta(const Vector3d& t, const Vector3d &p, vector<Vector3d> &f, bool onEdge);
+vector<Vector3d> intersezionipoligonoretta(const Vector3d& t, const Vector3d &p, vector<Vector3d> &f, bool &onEdge);
 
-vector<unsigned int> intersezionipoligonorettaLATI(const Vector3d& t, const Vector3d p, const Fracture& f, vector<unsigned int>toRemove);
+//vector<unsigned int> intersezionipoligonorettaLATI(const Vector3d& t, const Vector3d p, const Fracture& f, vector<unsigned int>toRemove, vector<Vector3d>& betaF);
 
 VectorXd PALUSolver(const MatrixXd& a, const VectorXd& b);
 
@@ -307,13 +307,14 @@ bool onSegment(const Vector3d& p, const Vector3d& a, const Vector3d& b);
 
 void intersezioniSuRetta(bool& bole, vector<Vector3d>& trace, vector<Vector3d>& s1, vector<Vector3d>& s2);
 
-bool sameLine(const Vector3d& retta, const Vector3d& p, const vector<Vector3d>& f, vector<Vector3d> coordinate);
+bool sameLine(const Vector3d& retta, const Vector3d& p, const vector<Vector3d>& f, vector<Vector3d> &coordinate);
 
 vector<PolygonalMesh> newpolygon(FractureMesh& mesh);
 
 void printingPolygonMesh(const vector<PolygonalMesh>& pm, const string& file);
 
 bool checkIsNew(const vector<unsigned int>& c2d, const Vector3d& point, const PolygonalMesh& pm, unsigned int& id);
+
 
 
 }
