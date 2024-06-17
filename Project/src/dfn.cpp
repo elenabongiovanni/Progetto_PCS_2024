@@ -14,7 +14,6 @@
 using namespace std;
 using namespace Eigen;
 
-
 namespace FractureLibrary {
 
 double tol = 1000 * numeric_limits<double>::epsilon();
@@ -204,7 +203,7 @@ bool onSegment(const Vector3d& p, const Vector3d& a, const Vector3d& b){
 }
 
 
-void intersezioniSuRetta(bool& bole, vector<Vector3d>& trace, vector<Vector3d>& s1, vector<Vector3d>& s2){
+void intersezioniSuRetta(bool& bole, vector<Vector3d>& trace, const vector<Vector3d>& s1, const vector<Vector3d>& s2){
     if(s1[0][0]  <= s2[0][0]){
         if(abs(s1[1][0]-s2[0][0])>tol && (s1[1][0]  <= s2[0][0])){
             return;
@@ -248,13 +247,145 @@ bool checkIsNew(const vector<unsigned int>& c2d, const Vector3d& point, const Po
             return false;
         }
     }
-
     return true;
 }
 
 unsigned int id0D = 0;
 unsigned int id1D = 0;
 unsigned int id2D = 0;
+
+void addNewVertAndEdg(bool& firstCell2d, unsigned int& wheretoinsert, Cell2d& c2new1, Cell2d& c2new2, bool& beenFalse,
+                      vector<Cell1d>& forming,vector<Cell0d>& forming0d, Vector3d& intersection, Cell1d& c1d,
+                      unsigned int& vert0, unsigned int& vert1, Cell2d& f){
+    Cell0d newcell0d(id0D, intersection);
+    //vector<unsigned int> ext1 = {f.Cell2DVertices[vert0].id, id0D};
+    Cell1d newcell1d1(id1D, {f.Cell2DVertices[vert0].id, id0D});
+    id1D++;
+    //vector<unsigned int> ext2 = {id0D++,f.Cell2DVertices[vert1].id};
+    Cell1d newcell1d2(id1D, {id0D++,f.Cell2DVertices[vert1].id});
+    id1D++;
+
+    newcell0d.touched2D = c1d.touched2D;
+    newcell0d.touched2D.push_back(c2new1.id);
+    newcell0d.touched2D.push_back(c2new2.id);
+
+    if(firstCell2d){
+        newcell1d1.touched2D = c1d.touched2D;
+        newcell1d1.touched2D.push_back(c2new1.id);
+        newcell1d2.touched2D = c1d.touched2D;
+        newcell1d2.touched2D.push_back(c2new2.id);
+
+        c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+        c2new1.Cell2DVertices.push_back(newcell0d);
+        c2new1.Cell2DEdges.push_back(newcell1d1);
+
+        c2new2.Cell2DVertices.push_back(newcell0d);
+        c2new2.Cell2DEdges.push_back(newcell1d2);
+
+        wheretoinsert = c2new1.Cell2DEdges.size();
+        Cell1d tempCell;
+        c2new1.Cell2DEdges.push_back(tempCell);
+        firstCell2d = false;
+        beenFalse = true;
+
+    }
+    else{
+        newcell1d1.touched2D = c1d.touched2D;
+        newcell1d1.touched2D.push_back(c2new2.id);
+        newcell1d2.touched2D = c1d.touched2D;
+        newcell1d2.touched2D.push_back(c2new1.id);
+
+        c2new2.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+        c2new2.Cell2DVertices.push_back(newcell0d);
+        c2new2.Cell2DEdges.push_back(newcell1d1);
+
+        c2new1.Cell2DVertices.push_back(newcell0d);
+        c2new1.Cell2DEdges.push_back(newcell1d2);
+        firstCell2d = true;
+    }
+    forming0d.push_back(newcell0d);
+    forming.push_back(newcell1d1);
+    forming.push_back(newcell1d2);
+    c1d.tobecome.push_back(newcell1d1);
+    c1d.tobecome.push_back(newcell1d2);
+}
+
+void addNewEdg(bool& firstCell2d, unsigned int& wheretoinsert, Cell2d& c2new1, Cell2d& c2new2, bool& beenFalse, Cell1d& c1d,
+                        Cell2d& f, PolygonalMesh& polyMesh, unsigned int& vert0, unsigned int& idSame){
+    if(firstCell2d){
+        c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+        c2new1.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
+        c2new2.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
+        c2new1.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[1]);
+        c2new2.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[0]);
+
+        wheretoinsert = c2new1.Cell2DEdges.size();
+        Cell1d tempCell;
+        c2new1.Cell2DEdges.push_back(tempCell);
+
+        c1d.tobecome[1].touched2D.push_back(c2new1.id);
+        c1d.tobecome[0].touched2D.push_back(c2new2.id);
+        firstCell2d = false;
+        beenFalse = true;
+
+    }else{
+        c2new2.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+        c2new2.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
+        c2new1.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
+        c2new2.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[1]);
+        c2new1.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[0]);
+
+        c1d.tobecome[1].touched2D.push_back(c2new2.id);
+        c1d.tobecome[0].touched2D.push_back(c2new1.id);
+
+        firstCell2d = true;
+    }
+    f.Cell2DVertices[vert0].touched2D.push_back(c2new1.id);
+    f.Cell2DVertices[vert0].touched2D.push_back(c2new2.id);
+}
+
+void dividingExistingVert(const unsigned int& idSame, Cell2d& f, unsigned int& vert0, bool& firstCell2d, bool& beenFalse,
+                        Cell2d& c2new1, Cell2d& c2new2, Cell1d& c1d, unsigned int& wheretoinsert ){
+    if(firstCell2d){
+        if(f.Cell2DVertices[vert0].id==idSame){
+            c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+            c2new2.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+
+            if(!beenFalse){
+                c2new2.Cell2DEdges.push_back(c1d);
+                c1d.touched2D.push_back(c2new2.id);
+                firstCell2d = false;
+                beenFalse = true;
+
+            }else{
+                c2new1.Cell2DEdges.push_back(c1d);
+                c1d.touched2D.push_back(c2new1.id);
+            }
+
+        }
+        else{
+            c2new1.Cell2DEdges.push_back(c1d);
+            c1d.touched2D.push_back(c2new1.id);
+            c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+            if(!beenFalse){
+                wheretoinsert = c2new1.Cell2DEdges.size();
+                Cell1d tempCell;
+                c2new1.Cell2DEdges.push_back(tempCell);
+            }
+        }
+    }else{
+        if(f.Cell2DVertices[vert0].id==idSame){
+            c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+        }else{
+            firstCell2d = true;
+        }
+        c2new2.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+
+        c2new2.Cell2DEdges.push_back(c1d);
+        c1d.touched2D.push_back(c2new2.id);
+    }
+}
+
 
 bool cuttingfractures(Cell2d& f, const Trace& t, PolygonalMesh& polyMesh, list<Cell2d>& next){
     unsigned int idSame;
@@ -278,7 +409,6 @@ bool cuttingfractures(Cell2d& f, const Trace& t, PolygonalMesh& polyMesh, list<C
     }
     for(Cell1d& c1d: f.Cell2DEdges){
         c1d = polyMesh.MapCell1D.at(c1d.id);
-        //if(!c1d.old){
         unsigned int vert0 = countline;
         unsigned int vert1 = (countline+1)%(f.numVert);
 
@@ -288,144 +418,15 @@ bool cuttingfractures(Cell2d& f, const Trace& t, PolygonalMesh& polyMesh, list<C
             f.old = true;
             if(checkIsNew(polyMesh.Cell0DId, intersection, polyMesh, idSame)){
                 idLatitagliati.push_back(c1d.id);
-                //c1d.old = true;
-                Cell0d newcell0d(id0D, intersection);
-                vector<unsigned int> ext1 = {f.Cell2DVertices[vert0].id, id0D};
-                Cell1d newcell1d1(id1D, ext1);
-                id1D++;
-                vector<unsigned int> ext2 = {id0D++,f.Cell2DVertices[vert1].id};
-                Cell1d newcell1d2(id1D, ext2);
-                id1D++;
-
-                newcell0d.touched2D = c1d.touched2D;
-                newcell0d.touched2D.push_back(c2new1.id);
-                newcell0d.touched2D.push_back(c2new2.id);
-
-                if(firstCell2d){
-                    newcell1d1.touched2D = c1d.touched2D;
-                    newcell1d1.touched2D.push_back(c2new1.id); //havend't defined a buch  of this here yet
-                    newcell1d2.touched2D = c1d.touched2D;
-                    newcell1d2.touched2D.push_back(c2new2.id);
-
-                    c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]); //quella da 200 si rompe qui
-                    c2new1.Cell2DVertices.push_back(newcell0d);
-                    c2new1.Cell2DEdges.push_back(newcell1d1);
-
-                    c2new2.Cell2DVertices.push_back(newcell0d);
-                    c2new2.Cell2DEdges.push_back(newcell1d2);
-
-                    wheretoinsert = c2new1.Cell2DEdges.size();
-                    Cell1d tempCell;
-                    c2new1.Cell2DEdges.push_back(tempCell);
-                    firstCell2d = false;
-                    beenFalse = true;
-
-                }
-                else{
-                    newcell1d1.touched2D = c1d.touched2D;
-                    newcell1d1.touched2D.push_back(c2new2.id);
-                    newcell1d2.touched2D = c1d.touched2D;
-                    newcell1d2.touched2D.push_back(c2new1.id);
-
-                    c2new2.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
-                    c2new2.Cell2DVertices.push_back(newcell0d);
-                    c2new2.Cell2DEdges.push_back(newcell1d1);
-
-                    c2new1.Cell2DVertices.push_back(newcell0d);
-                    c2new1.Cell2DEdges.push_back(newcell1d2);
-                    firstCell2d = true;
-                }
-                forming0d.push_back(newcell0d);
-                forming.push_back(newcell1d1);
-                forming.push_back(newcell1d2);
-                c1d.tobecome.push_back(newcell1d1);
-                c1d.tobecome.push_back(newcell1d2);
-
+                addNewVertAndEdg(firstCell2d, wheretoinsert, c2new1, c2new2, beenFalse, forming, forming0d, intersection, c1d, vert0, vert1, f);
             }
             else{
                 posVert.push_back(idSame);
-                //Vector3d inters2;
                 unsigned int vertice;
                 if(checkIsNew(idVertF, intersection, polyMesh, vertice)){
-                    if(firstCell2d){
-                        c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
-                        c2new1.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
-                        c2new2.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
-                        c2new1.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[1]);
-                        c2new2.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[0]);
-
-                        wheretoinsert = c2new1.Cell2DEdges.size();
-                        Cell1d tempCell;
-                        c2new1.Cell2DEdges.push_back(tempCell);
-
-                        //c1d.tobecome[0].touched2D = c1d.touched2D;
-                        c1d.tobecome[1].touched2D.push_back(c2new1.id);
-                        //c1d.tobecome[1].touched2D = c1d.touched2D;
-                        c1d.tobecome[0].touched2D.push_back(c2new2.id);
-                        firstCell2d = false;
-                        beenFalse = true;
-
-                    }else{
-                        c2new2.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
-                        c2new2.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
-                        c2new1.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
-                        c2new2.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[1]);
-                        c2new1.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[0]);
-
-                        c1d.tobecome[1].touched2D.push_back(c2new2.id);
-                        c1d.tobecome[0].touched2D.push_back(c2new1.id);
-
-                        firstCell2d = true;
-                    }
-                    f.Cell2DVertices[vert0].touched2D.push_back(c2new1.id);
-                    f.Cell2DVertices[vert0].touched2D.push_back(c2new2.id);
-
-
+                    addNewEdg(firstCell2d, wheretoinsert, c2new1,c2new2,beenFalse,c1d,f, polyMesh, vert0, idSame);
                 }else{
-                    if(firstCell2d){
-                        //posVert.push_back(idSame);
-                        if(f.Cell2DVertices[vert0].id==idSame){
-                            c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
-                            c2new2.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
-
-                            if(!beenFalse){
-                                c2new2.Cell2DEdges.push_back(c1d);
-                                c1d.touched2D.push_back(c2new2.id);
-                                firstCell2d = false;
-                                beenFalse = true;
-
-                            }else{
-                                c2new1.Cell2DEdges.push_back(c1d);
-                                c1d.touched2D.push_back(c2new1.id);
-                            }
-
-                        }
-                        else{
-                            c2new1.Cell2DEdges.push_back(c1d);
-                            c1d.touched2D.push_back(c2new1.id);
-                            c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
-                            if(!beenFalse){
-                                wheretoinsert = c2new1.Cell2DEdges.size();
-                                Cell1d tempCell;
-                                c2new1.Cell2DEdges.push_back(tempCell);
-                            }
-                        }
-
-                    }
-                    else{
-                        if(f.Cell2DVertices[vert0].id==idSame){
-                            c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
-                        }else{
-                            firstCell2d = true;
-                        }
-                        c2new2.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
-                        //c2new2.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
-                        //c2new1.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
-                        //c2new2.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[0]);
-                        //c2new1.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[1]);
-                        c2new2.Cell2DEdges.push_back(c1d);
-                        c1d.touched2D.push_back(c2new2.id);
-                    }
+                    dividingExistingVert(idSame, f, vert0, firstCell2d, beenFalse, c2new1, c2new2, c1d, wheretoinsert);
                 }
             }
         }
@@ -445,7 +446,7 @@ bool cuttingfractures(Cell2d& f, const Trace& t, PolygonalMesh& polyMesh, list<C
             }
         }
         countline++;
-        //}
+
     }
     if(!f.old){
         id2D = id2D-2;
@@ -511,6 +512,8 @@ bool cuttingfractures(Cell2d& f, const Trace& t, PolygonalMesh& polyMesh, list<C
         return false;
     }
 }
+
+
 
 
 
@@ -708,6 +711,72 @@ void findIntersections(FractureMesh &mesh){
     }
 }
 
+//funzione per controllare se la traccia non passante taglia una sotto-Cella2d
+bool cuttedByNonPas(const vector<Vector3d>& copiacoordiTrace, const Cell2d& cc, const Fracture& f, const Trace& trace){
+
+    vector<Vector3d> ver;
+    for(const Cell0d& c0: cc.Cell2DVertices){
+        ver.push_back(c0.coordinates);
+    }
+    bool estremiTracciaInside = false;
+    bool onEdge = false;
+    vector<Vector3d> interRetta = intersezionipoligonoretta(trace.retta, trace.p, ver, onEdge);
+
+    if(interRetta.size()==2){
+        sort(interRetta.begin(), interRetta.end(), compareFirstElement);
+        vector<Vector3d> estremi(2);
+        intersezioniSuRetta(estremiTracciaInside, estremi, interRetta, copiacoordiTrace);
+    }
+
+    if(estremiTracciaInside && !f.onEdge.at(trace.id))
+        return true;
+    else
+        return false;
+}
+
+void splitOneEdg(unsigned int& id2D, Cell2d& toCut, PolygonalMesh& pm){
+    Cell2d c2new3;
+    c2new3.id = id2D;
+    vector<unsigned int> listaidvertici;
+    vector<unsigned int> listaidlati;
+    toCut.old = true;
+    unsigned int vert = 0;
+    for(Cell1d& lati: toCut.Cell2DEdges){
+        unsigned int idvert0 = toCut.Cell2DVertices[vert].id;
+        if(pm.MapCell1D.at(lati.id).old){
+            c2new3.Cell2DVertices.push_back(pm.MapCell0D.at(idvert0));
+            listaidvertici.push_back(idvert0);
+            Cell1d& c1 = pm.MapCell1D.at(lati.id).tobecome[0];
+            Cell1d& c2 = pm.MapCell1D.at(lati.id).tobecome[1];
+            c2new3.Cell2DVertices.push_back(pm.MapCell0D.at(c2.extremes[0]));
+            c2new3.Cell2DEdges.push_back(c2);
+            listaidlati.push_back(c2.id);
+            c2new3.Cell2DEdges.push_back(c1);
+            listaidlati.push_back(c1.id);
+            listaidvertici.push_back(c2.extremes[0]);
+            pm.MapCell1D.at(c1.id).touched2D.push_back(c2new3.id);
+            pm.MapCell1D.at(c2.id).touched2D.push_back(c2new3.id);
+            pm.MapCell1D.at(lati.id).tobecome[0].touched2D.push_back(c2new3.id);
+            pm.MapCell1D.at(lati.id).tobecome[1].touched2D.push_back(c2new3.id);
+
+        }else{
+            c2new3.Cell2DVertices.push_back(pm.MapCell0D.at(idvert0));
+            c2new3.Cell2DEdges.push_back(pm.MapCell1D.at(lati.id));
+            listaidvertici.push_back(idvert0);
+            listaidlati.push_back(lati.id);
+            pm.MapCell1D.at(lati.id).touched2D.push_back(c2new3.id);
+        }
+        vert++;
+    }
+
+    pm.Cell2DId.push_back(id2D);
+    c2new3.numVert = listaidvertici.size();
+    pm.MapCell2D[id2D] = c2new3;
+    pm.MapCell2DVertices[id2D] = listaidvertici;
+    pm.MapCell2DEdges[id2D++] = listaidlati;
+    pm.MapCell2D[toCut.id]=toCut;
+}
+
 vector<PolygonalMesh> newpolygon(FractureMesh& mesh){
     vector<PolygonalMesh> newfigures;
 
@@ -745,134 +814,16 @@ vector<PolygonalMesh> newpolygon(FractureMesh& mesh){
             for(unsigned int& cc2d: pm.Cell2DId){
                 Cell2d &cc = pm.MapCell2D.at(cc2d);
                 if(!cc.old){
-                    vector<Vector3d> ver;
-                    for(Cell0d& c0: cc.Cell2DVertices){
-                        ver.push_back(c0.coordinates);
-                    }
-                    bool estremiTracciaInside = false;
-                    bool onEdge = false;
-                    vector<Vector3d> interRetta = intersezionipoligonoretta(trace.retta, trace.p, ver, onEdge);
-
-                    if(interRetta.size()==2){
-                        sort(interRetta.begin(), interRetta.end(), compareFirstElement);
-                        vector<Vector3d> estremi(2);
-                        intersezioniSuRetta(estremiTracciaInside, estremi, interRetta, copiacordiTrace);
-                    }
-
-                    if(estremiTracciaInside && !f.onEdge.at(trace.id)){
+                    if(cuttedByNonPas(copiacordiTrace, cc, f, trace)){
                         if(cuttingfractures(cc, trace, pm, next)){
                             while(!next.empty()){
                                 Cell2d &toCut = next.front();
                                 if(!toCut.old){
-                                    vector<Vector3d> ver;
-                                    for(Cell0d& c0: toCut.Cell2DVertices){
-                                        ver.push_back(c0.coordinates);
-                                    }
-                                    bool estremiTracciaInside2 = false;
-                                    bool onEdge = false;
-                                    vector<Vector3d> interRetta = intersezionipoligonoretta(trace.retta, trace.p, ver, onEdge);
-
-                                    if(interRetta.size()==2){
-                                        sort(interRetta.begin(), interRetta.end(), compareFirstElement);
-                                        vector<Vector3d> estremi(2);
-                                        intersezioniSuRetta(estremiTracciaInside2, estremi, interRetta, copiacordiTrace);
-                                    }
-                                    if(estremiTracciaInside2)
+                                    if(cuttedByNonPas(copiacordiTrace, toCut, f, trace))
                                         bool cutted = cuttingfractures(toCut, trace, pm, next);
                                     else{
-                                        Cell2d c2new3;
-                                        c2new3.id = id2D;
-                                        vector<unsigned int> listaidvertici;
-                                        vector<unsigned int> listaidlati;
-                                        toCut.old = true;
-                                        unsigned int vert = 0;
-                                        for(Cell1d& lati: toCut.Cell2DEdges){
-                                            unsigned int idvert0 = toCut.Cell2DVertices[vert].id;
-                                            if(pm.MapCell1D.at(lati.id).old){
-                                                c2new3.Cell2DVertices.push_back(pm.MapCell0D.at(idvert0));
-                                                listaidvertici.push_back(idvert0);
-                                                Cell1d& c1 = pm.MapCell1D.at(lati.id).tobecome[0];
-                                                Cell1d& c2 = pm.MapCell1D.at(lati.id).tobecome[1];
-                                                c2new3.Cell2DVertices.push_back(pm.MapCell0D.at(c2.extremes[0]));
-                                                c2new3.Cell2DEdges.push_back(c2);
-                                                listaidlati.push_back(c2.id);
-                                                c2new3.Cell2DEdges.push_back(c1);
-                                                listaidlati.push_back(c1.id);
-                                                listaidvertici.push_back(c2.extremes[0]);
-                                                pm.MapCell1D.at(c1.id).touched2D.push_back(c2new3.id);
-                                                pm.MapCell1D.at(c2.id).touched2D.push_back(c2new3.id);
-                                                pm.MapCell1D.at(lati.id).tobecome[0].touched2D.push_back(c2new3.id);
-                                                pm.MapCell1D.at(lati.id).tobecome[1].touched2D.push_back(c2new3.id);
-
-                                            }else{
-                                                c2new3.Cell2DVertices.push_back(pm.MapCell0D.at(idvert0));
-                                                c2new3.Cell2DEdges.push_back(pm.MapCell1D.at(lati.id));
-                                                listaidvertici.push_back(idvert0);
-                                                listaidlati.push_back(lati.id);
-                                                pm.MapCell1D.at(lati.id).touched2D.push_back(c2new3.id);
-                                            }
-
-                                            vert++;
-                                        }
-
-                                        pm.Cell2DId.push_back(id2D);
-                                        c2new3.numVert = listaidvertici.size();
-                                        pm.MapCell2D[id2D] = c2new3;
-                                        pm.MapCell2DVertices[id2D] = listaidvertici;
-                                        pm.MapCell2DEdges[id2D++] = listaidlati;
-                                        pm.MapCell2D[toCut.id]=toCut;
-
+                                        splitOneEdg(id2D, toCut, pm);
                                     }
-
-                                    /*for(const unsigned int& id: idLatitagliati){
-                                            for(unsigned int& c2: MapCell1D.at(id).touched2D){
-                                                if(!MapCell2D.at(c2).old){
-                                                    MapCell2D.at(c2).old = true;
-                                                    Cell2d c2new3;
-                                                    c2new3.id = id2d;
-                                                    vector<unsigned int> listaidvertici;
-                                                    vector<unsigned int> listaidlati;
-                                                    unsigned int vert = 0;
-                                                    for(Cell1d& lati: MapCell2D.at(c2).Cell2DEdges){
-                                                        unsigned int idvert0 = MapCell2D.at(c2).Cell2DVertices[vert].id;
-                                                        if(MapCell1D.at(lati.id).old){
-                                                            c2new3.Cell2DVertices.push_back(MapCell0D.at(idvert0));
-                                                            listaidvertici.push_back(idvert0);
-                                                            Cell1d& c1 = MapCell1D.at(id).tobecome[0];
-                                                            Cell1d& c2 = MapCell1D.at(id).tobecome[1];
-
-                                                            c2new3.Cell2DVertices.push_back(MapCell0D.at(c2.extremes[0]));
-                                                            c2new3.Cell2DEdges.push_back(c2);
-                                                            listaidlati.push_back(c2.id);
-                                                            c2new3.Cell2DEdges.push_back(c1);
-                                                            listaidlati.push_back(c1.id);
-                                                            listaidvertici.push_back(c2.extremes[0]);
-                                                            MapCell1D.at(c1.id).touched2D.push_back(c2new3.id);
-                                                            MapCell1D.at(c2.id).touched2D.push_back(c2new3.id);
-
-                                                        }else{
-                                                            c2new3.Cell2DVertices.push_back(MapCell0D.at(idvert0));
-                                                            c2new3.Cell2DEdges.push_back(MapCell1D.at(lati.id));
-                                                            listaidvertici.push_back(idvert0);
-                                                            listaidlati.push_back(lati.id);
-                                                            MapCell1D.at(lati.id).touched2D.push_back(c2new3.id);
-                                                        }
-                                                        vert++;
-                                                    }
-
-                                                    Cell2DId.push_back(id2d);
-                                                    c2new3.numVert = listaidvertici.size();
-                                                    MapCell2D[id2d] = c2new3;
-                                                    MapCell2DVertices[id2d] = listaidvertici;
-                                                    MapCell2DEdges[id2d++] = listaidlati;
-                                                    next.push_back(c2new3);
-                                                    MapCell1D.at(id).tobecome[0].touched2D.push_back(c2new3.id);
-                                                    MapCell1D.at(id).tobecome[1].touched2D.push_back(c2new3.id);
-
-                                                }
-                                            }
-                                        }
-                                    }*/
                                 }
                                 next.pop_front();
                             }
@@ -887,19 +838,22 @@ vector<PolygonalMesh> newpolygon(FractureMesh& mesh){
     return newfigures;
 }
 
+
+//funzione per stampare tutte le polygonalMesh formate
 void printingPolygonMesh(const vector<PolygonalMesh>& vpm, const string& file){
     string filepath = "newPolygons_" + file.substr(4,file.length()-4);
     ofstream outfile(filepath);
     if (outfile.is_open()) {
         for(const PolygonalMesh& pm: vpm){
             outfile << "New Polygonal Mesh" << endl;
+            outfile << "Obtained from fracture " << pm.numFrac << endl;
             unsigned int countCell1d = 0;
             unsigned int countCell2d = 0;
             outfile << "Cell0Ds: " << endl << "Id; X; Y; Z;" << endl;
             for(const auto& d: pm.Cell0DId){
                 outfile << d << "; " << pm.MapCell0D.at(d).coordinates[0] << "; " << pm.MapCell0D.at(d).coordinates[1] << "; " << pm.MapCell0D.at(d).coordinates[2] << endl;
             }
-            outfile << "Cell0Ds: " << endl << "Id; IdVert1; IdVert2" << endl;
+            outfile << "Cell1Ds: " << endl << "Id; IdVert1; IdVert2" << endl;
             for(const auto& e: pm.Cell1DId){
                 if(!pm.MapCell1D.at(e).old){
                     outfile << e << "; " << pm.MapCell1D.at(e).extremes[0] << "; " << pm.MapCell1D.at(e).extremes[1] << endl;

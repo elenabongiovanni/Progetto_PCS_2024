@@ -305,7 +305,7 @@ bool compareFirstElement(const Vector3d& a, const Vector3d& b);
 
 bool onSegment(const Vector3d& p, const Vector3d& a, const Vector3d& b);
 
-void intersezioniSuRetta(bool& bole, vector<Vector3d>& trace, vector<Vector3d>& s1, vector<Vector3d>& s2);
+void intersezioniSuRetta(bool& bole, vector<Vector3d>& trace, const vector<Vector3d> &s1, const vector<Vector3d> &s2);
 
 bool sameLine(const Vector3d& retta, const Vector3d& p, const vector<Vector3d>& f, vector<Vector3d> &coordinate);
 
@@ -315,7 +315,19 @@ void printingPolygonMesh(const vector<PolygonalMesh>& pm, const string& file);
 
 bool checkIsNew(const vector<unsigned int>& c2d, const Vector3d& point, const PolygonalMesh& pm, unsigned int& id);
 
+void addNewVertAndEdg(bool& firstCell2d, unsigned int& wheretoinsert, Cell2d& c2new1, Cell2d& c2new2, bool& beenFalse,
+                      vector<Cell1d>& forming,vector<Cell0d>& forming0d, Vector3d& intersection, Cell1d& c1d,
+                      unsigned int& vert0, unsigned int& vert1, Cell2d& f);
 
+void addNewEdg(bool& firstCell2d, unsigned int& wheretoinsert, Cell2d& c2new1, Cell2d& c2new2, bool& beenFalse, Cell1d& c1d,
+               Cell2d& f, PolygonalMesh& polyMesh, unsigned int& vert0, unsigned int& idSame);
+
+void dividingExistingVert(const unsigned int& idSame, Cell2d& f, unsigned int& vert0, bool& firstCell2d, bool& beenFalse,
+                          Cell2d& c2new1, Cell2d& c2new2, Cell1d& c1d, unsigned int& wheretoinsert );
+
+bool cuttedByNonPas(const vector<Vector3d>& copiacoordiTrace, const Cell2d& cc, const Fracture& f, const Trace &trace);
+
+void splitOneEdg(unsigned int& id2D, Cell2d& toCut, PolygonalMesh& pm);
 
 }
 #endif // DFN_HPP

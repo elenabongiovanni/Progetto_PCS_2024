@@ -203,26 +203,49 @@ TEST(FRACTURETest, testintersLato) {
 }
 
 // TEST per la funzione bool checkIsNew(const Cell1d& c2d, const Vector3d& point, const PolygonalMesh& pm, unsigned int& id);
-/*TEST(FRACTURETest, testcheckisnew) {
+TEST(FRACTURETest, testcheckisnew1) {
     PolygonalMesh pm;
-    unsigned int id = 0;
-    Vector3d point(1.0,2.0,2.0); //diverse!!!
-    Cell1d c2d;
+    unsigned int id;
+    Vector3d point(1.0,0.0,1.0); //diverse!!!
     unsigned int id0 = 0;
     unsigned int id1 = 1;
-    Vector3d coord0 = {1.0,2.0,4.0};
-    Cell0d c0d(id0,coord0);
-    Vector3d coord1 = {1.0,3.0,4.0};
-    Cell0d c1d(id1,coord1);
-    c2d.extremes = {0,1};
-    pm.MapCell0D[0] = c0d;
-    pm.MapCell0D[1] = c1d;
+    unsigned int id2 = 2;
+    vector<unsigned int> c2d = {id0, id1, id2};
+    Cell0d v0(id0, {0.0,0.0,0.0});
+    Cell0d v1(id1,{2.0,0.0,2.0});
+    Cell0d v2(id2,{0.0,2.0,2.0});
+    pm.Cell0DId = {id0, id1, id2};
+    pm.MapCell0D[id0] = v0;
+    pm.MapCell0D[id1] = v1;
+    pm.MapCell0D[id2] = v2;
 
     // verifica che le coordinate nuove inserite siano diverse da quelle già all'interno della mappa
     bool checkisnew = checkIsNew(c2d,point,pm,id);
 
     EXPECT_TRUE(checkisnew);
-}*/
+}
+
+TEST(FRACTURETest, testcheckisnew2) {
+    PolygonalMesh pm;
+    unsigned int id;
+    Vector3d point(0.0,0.0,0.0); //diverse!!!
+    unsigned int id0 = 0;
+    unsigned int id1 = 1;
+    unsigned int id2 = 2;
+    vector<unsigned int> c2d = {id0, id1, id2};
+    Cell0d v0(id0, {0.0,0.0,0.0});
+    Cell0d v1(id1,{2.0,0.0,2.0});
+    Cell0d v2(id2,{0.0,2.0,2.0});
+    pm.Cell0DId = {id0, id1, id2};
+    pm.MapCell0D[id0] = v0;
+    pm.MapCell0D[id1] = v1;
+    pm.MapCell0D[id2] = v2;
+
+    // verifica che le coordinate nuove inserite siano diverse da quelle già all'interno della mappa
+    bool checkisnew = checkIsNew(c2d,point,pm,id);
+
+    EXPECT_FALSE(checkisnew);
+}
 
 //Test per la funzione bool ImportFR_data(const string &filename, FractureMesh& mesh)
 TEST(FRACTURETEST, TestPlotImportData){
@@ -470,7 +493,86 @@ TEST(FRACTURETEST, defNewTrace2){
 
 }
 
+TEST(POLYGONALTEST, testAddNewVertAndEdg){
 
+    unsigned int id0 = 0;
+    unsigned int id1 = 1;
+    unsigned int id2 = 2;
+    Cell0d v0(id0, {0.0,0.0,0.0});
+    Cell0d v1(id1,{2.0,0.0,2.0});
+    Cell0d v2(id2,{0.0,2.0,2.0});
+    Cell1d ab(id0, {0,1});
+    Cell1d bc(id1, {1,2});
+    Cell1d ca(id2, {2,0});
+    bool firstCell2d = true;
+    bool beenFalse = false;
+    unsigned int wheretoinsert;
+    Cell2d nuovacella2d1;
+    Cell2d nuovacella2d2;
+    vector<Cell1d> forming;
+    vector<Cell0d> forming0d;
+    Vector3d inter = {1.0, 0.0, 1.0};
+    unsigned int vert0 = 0;
+    unsigned int vert1 = 1;
+    Cell2d cella2d;
+    cella2d.id = 0;
+    cella2d.numVert= 3;
+    cella2d.Cell2DEdges = {ab, bc, ca};
+    cella2d.Cell2DVertices = {v0, v1, v2};
+
+    addNewVertAndEdg(firstCell2d, wheretoinsert, nuovacella2d1, nuovacella2d2, beenFalse, forming, forming0d, inter, ab, vert0, vert1, cella2d);
+
+    EXPECT_EQ(nuovacella2d1.Cell2DEdges.size(),2);
+    EXPECT_EQ(nuovacella2d1.Cell2DVertices.size(),2);
+    EXPECT_EQ(nuovacella2d2.Cell2DEdges.size(),1);
+    EXPECT_EQ(nuovacella2d2.Cell2DVertices.size(),1);
+}
+
+TEST(POLYGONALTEST, testAddNewVertAndEdg2){
+
+    unsigned int id0 = 0;
+    unsigned int id1 = 1;
+    unsigned int id2 = 2;
+    Cell0d v0(id0, {0.0,0.0,0.0});
+    Cell0d v1(id1,{2.0,0.0,2.0});
+    Cell0d v2(id2,{0.0,2.0,2.0});
+    Cell1d ab(id0, {0,1});
+    Cell1d bc(id1, {1,2});
+    Cell1d ca(id2, {2,0});
+    bool firstCell2d = true;
+    bool beenFalse = false;
+    unsigned int wheretoinsert;
+    Cell2d nuovacella2d1;
+    Cell2d nuovacella2d2;
+    vector<Cell1d> forming;
+    vector<Cell0d> forming0d;
+    Vector3d inter = {1.0, 0.0, 1.0};
+    Vector3d inter2 = {1.0, 1.0, 1.0};
+    unsigned int vert0 = 0;
+    unsigned int vert1 = 1;
+    Cell2d cella2d;
+    cella2d.id = 0;
+    cella2d.numVert= 3;
+    cella2d.Cell2DEdges = {ab, bc, ca};
+    cella2d.Cell2DVertices = {v0, v1, v2};
+
+    addNewVertAndEdg(firstCell2d, wheretoinsert, nuovacella2d1, nuovacella2d2, beenFalse, forming, forming0d, inter, ab, vert0, vert1, cella2d);
+    addNewVertAndEdg(firstCell2d, wheretoinsert, nuovacella2d1, nuovacella2d2, beenFalse, forming, forming0d, inter2, ab, vert0, vert1, cella2d);
+    EXPECT_EQ(nuovacella2d1.Cell2DEdges.size(),3);
+    EXPECT_EQ(nuovacella2d1.Cell2DVertices.size(),3);
+    EXPECT_EQ(nuovacella2d2.Cell2DEdges.size(),2);
+    EXPECT_EQ(nuovacella2d2.Cell2DVertices.size(),3);
+}
+
+TEST(POLYGONALTEST, addNewEdg){
+
+}
+
+/*, unsigned int& wheretoinsert, Cell2d& c2new1, Cell2d& c2new2, bool& beenFalse,
+                      vector<Cell1d>& forming,vector<Cell0d>& forming0d, Vector3d& intersection, Cell1d& c1d,
+                      unsigned int& vert0, unsigned int& vert1, Cell2d& f){
+
+}*/
 
 
 
