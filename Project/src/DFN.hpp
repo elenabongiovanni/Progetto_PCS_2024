@@ -11,7 +11,6 @@
 
 using namespace std;
 using namespace Eigen;
-//using namespace Polygon;
 
 namespace FractureLibrary
 {
@@ -22,7 +21,6 @@ double dist(Vector3d v1, Vector3d v2);
 struct Trace
 {
     Vector2i fraId = {};
-    //map<unsigned int, bool> fracturesTrace ={};
     vector<Vector3d> coordTrace = {};
     double len = 0.0;
     unsigned int id = 0;
@@ -44,9 +42,7 @@ struct Fracture
     list<Trace> listPas = {};
     list<Trace> listNonpas = {};
     map<unsigned int, bool> tips = {};
-    unsigned int numFrac = 0;
-    //map<unsigned int, vector<Vector3d>> intersectionRettaTraccia = {};
-    //Vector3d normalePiano = {};
+    unsigned int numTrac = 0;
     list<unsigned int> idvertici = {};
     list<unsigned int> idlati = {};
     vector<double> plane = {};
@@ -76,7 +72,6 @@ struct Fracture
 
         Vector3d planeF = lato1F.cross(lato2F);
         double d = -(planeF[0] * vertices[0][0]) - (planeF[1] * vertices[0][1]) - (planeF[2] * vertices[0][2]);
-        //cout << "d: " << d << endl;
         plane.reserve(4);
         for(unsigned int i=0; i<3; i++){
             plane.push_back(planeF[i]);
@@ -92,15 +87,8 @@ struct Fracture
 struct FractureMesh
 {
     unsigned int NumFractures = 0; // numero fratture
-    //Matrix3d CoordinatesFractures = {}; // coordinate delle fratture
     vector<unsigned int> FractureId = {}; // identificatore
-    //unsigned int NumVertices = 0; // rete 3-dimensionale //il numero di vertici dovrebe essere un elemento della singola frattura non della mesh
-    //vector<vector<unsigned int>> Cell3DVertices = {}; // lista dei vertici
-    //vector<Vector2d> Cell1DVertices = {}; // descritto da due vertici: origin e end
-    vector<Fracture> MapFractures = {}; // potresti cambiare con freactures
-    //vector<Fracture> MapFractures = {};
-    //vector<Vector3d<double>> CoordinatesFractures = {};
-    //vector<Trace> vecTrace = {};
+    vector<Fracture> MapFractures = {};
     map<unsigned int, Trace> MapTrace = {};
 
 
@@ -131,7 +119,7 @@ struct FractureMesh
         ofstream outfile(filepath);
         if (outfile.is_open()) {
             for(const auto &f: MapFractures){
-                outfile << "# FractureId; NumTraces" << endl << f.id << "; " << f.numFrac << endl << "# TraceId; Tips; Lenght" << endl;
+                outfile << "# FractureId; NumTraces" << endl << f.id << "; " << f.numTrac << endl << "# TraceId; Tips; Lenght" << endl;
                 for(const auto &t: f.listPas){
                     outfile << t.id << "; false; " << scientific << setprecision(16)<< t.len << endl;
                 }
@@ -154,7 +142,6 @@ struct Cell0d{
     bool old = false;
     vector<unsigned int> touched2D = {};
 
-    //Cell0d(): id(0), coordinates{} {};
     Cell0d():id(0), coordinates{} {}
     Cell0d(unsigned int& i, const Vector3d vert): id(i), coordinates(vert) {}
 };
@@ -184,8 +171,7 @@ struct Cell2d{
         Cell2DVertices.resize(numVert);
         Cell2DEdges.resize(numVert);
         id = id2d++;
-        //unsigned int idVert = 0;
-        //unsigned int idEdge = 0;
+
         for(unsigned int i=0; i<numVert; i++){
             Cell0d newCell0d(idVert,f.vertices[i]);
             newCell0d.touched2D.push_back(this->id);
@@ -208,15 +194,15 @@ struct PolygonalMesh
     unsigned int numFrac;
 
     unsigned int numCell0D = 0;
-    list<unsigned int> Cell0DId = {};
+    vector<unsigned int> Cell0DId = {};
     map<unsigned int, Cell0d> MapCell0D = {};
 
     unsigned int numCell1D = 0;
-    list<unsigned int> Cell1DId = {};
+    vector<unsigned int> Cell1DId = {};
     map<unsigned int, Cell1d> MapCell1D = {};
 
     unsigned int numCell2D = 0;
-    list<unsigned int> Cell2DId = {};
+    vector<unsigned int> Cell2DId = {};
     map<unsigned int, Cell2d> MapCell2D = {};
     map<unsigned int, vector<unsigned int>> MapCell2DVertices = {};
     map<unsigned int, vector<unsigned int>> MapCell2DEdges = {};
@@ -279,50 +265,7 @@ struct PolygonalMesh
         for(const unsigned int& id: idLatitagliati){
             for(unsigned int& c2: MapCell1D.at(id).touched2D){
                 if(!MapCell2D.at(c2).old){
-                    MapCell2D.at(c2).old = true;
-                    Cell2d c2new3;
-                    c2new3.id = id2d;
-                    vector<unsigned int> listaidvertici;
-                    vector<unsigned int> listaidlati;
-                    unsigned int vert = 0;
-                    for(Cell1d& lati: MapCell2D.at(c2).Cell2DEdges){
-                        unsigned int idvert0 = MapCell2D.at(c2).Cell2DVertices[vert].id;
-                        //unsigned int idvert1 = MapCell2D.at(c2).Cell2DVertices[(vert+1)];
-                        if(MapCell1D.at(lati.id).old){
-                            c2new3.Cell2DVertices.push_back(MapCell0D.at(idvert0));
-                            listaidvertici.push_back(idvert0);
-                            //bool toAdd=true;
-                            Cell1d& c1 = MapCell1D.at(id).tobecome[0];
-                            Cell1d& c2 = MapCell1D.at(id).tobecome[1];
-
-                            c2new3.Cell2DVertices.push_back(MapCell0D.at(c2.extremes[0]));
-                            //c2new3.Cell2DVertices.push_back(MapCell0D.at(c1.extremes[0]));
-                            c2new3.Cell2DEdges.push_back(c2);
-                            listaidlati.push_back(c2.id);
-                            c2new3.Cell2DEdges.push_back(c1);
-                            listaidlati.push_back(c1.id);
-                            listaidvertici.push_back(c2.extremes[0]);
-                            MapCell1D.at(c1.id).touched2D.push_back(c2new3.id);
-                            MapCell1D.at(c2.id).touched2D.push_back(c2new3.id);
-
-                        }else{
-                            c2new3.Cell2DVertices.push_back(MapCell0D.at(idvert0));
-                            c2new3.Cell2DEdges.push_back(MapCell1D.at(lati.id));
-                            listaidvertici.push_back(idvert0);
-                            listaidlati.push_back(lati.id);
-                            MapCell1D.at(lati.id).touched2D.push_back(c2new3.id);
-                        }
-                        vert++;
-                    }
-
-                    Cell2DId.push_back(id2d);
-                    c2new3.numVert = listaidvertici.size();
-                    MapCell2D[id2d] = c2new3;
-                    MapCell2DVertices[id2d] = listaidvertici;
-                    MapCell2DEdges[id2d++] = listaidlati;
-                    next.push_back(c2new3);
-                    MapCell1D.at(id).tobecome[0].touched2D.push_back(c2new3.id);
-                    MapCell1D.at(id).tobecome[1].touched2D.push_back(c2new3.id);
+                    next.push_back(MapCell2D.at(c2));
 
                 }
             }
@@ -346,15 +289,13 @@ void addingStuff(vector<bool>& angolo, vector<unsigned int> idLatitagliati, vect
 
 void defNewTrace(Trace& t, const double& d1, const double& d2, Fracture& f1, Fracture& f2, FractureMesh& fm);
 
-void printingtraces(FractureMesh& mesh, const string& file);
+void printingtraces(const string& file);
 
-void printingfractures(FractureMesh& mesh, const string& file);
+void printingfractures(const string& file);
 
 vector<Vector3d> intersezionipoligonoretta(const Vector3d& t, const Vector3d &p, vector<Vector3d> &f, bool onEdge);
 
 vector<unsigned int> intersezionipoligonorettaLATI(const Vector3d& t, const Vector3d p, const Fracture& f, vector<unsigned int>toRemove);
-
-//vector<Fracture> cuttingfractures(const Fracture& f, const Trace& t, PolygonalMesh& pm);
 
 VectorXd PALUSolver(const MatrixXd& a, const VectorXd& b);
 
@@ -372,7 +313,7 @@ vector<PolygonalMesh> newpolygon(FractureMesh& mesh);
 
 void printingPolygonMesh(const vector<PolygonalMesh>& pm, const string& file);
 
-bool checkIsNew(const Cell1d& c2d, const Vector3d& point, const PolygonalMesh& pm, unsigned int& id);
+bool checkIsNew(const vector<unsigned int>& c2d, const Vector3d& point, const PolygonalMesh& pm, unsigned int& id);
 
 
 }

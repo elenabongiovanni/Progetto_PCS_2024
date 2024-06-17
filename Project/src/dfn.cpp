@@ -25,8 +25,8 @@ void defNewTrace(Trace& t, const double& d1, const double& d2, Fracture& f1, Fra
     t.len = lunghezzatraccia;
     t.id = idTrace;
     fm.MapTrace[idTrace++] = t;
-    f1.numFrac++;
-    f2.numFrac++;
+    f1.numTrac++;
+    f2.numTrac++;
 
     if(abs(lunghezzatraccia-d1)<tol){
         f1.listPas.push_back(t);
@@ -236,8 +236,8 @@ void intersezioniSuRetta(bool& bole, vector<Vector3d>& trace, vector<Vector3d>& 
 
 
 
-bool checkIsNew(const Cell1d& c2d, const Vector3d& point, const PolygonalMesh& pm, unsigned int& id){
-    for(unsigned int c0d: c2d.extremes){
+bool checkIsNew(const vector<unsigned int>& c2d, const Vector3d& point, const PolygonalMesh& pm, unsigned int& id){
+    for(unsigned int c0d: c2d){
         Vector3d v = (pm.MapCell0D.at(c0d).coordinates);
         if(abs(v[0]-point(0))<tol && abs(v[1]-point(1))<tol && abs(v[2]-point(2))<tol){
             id = c0d;
@@ -268,9 +268,13 @@ bool cuttingfractures(Cell2d& f, const Trace& t, PolygonalMesh& polyMesh, list<C
     unsigned int countvertici = 0;
     bool beenFalse = false;
     vector<unsigned int> posVert;
+    vector<unsigned int> idVertF;
+    for(const Cell0d& p: f.Cell2DVertices){
+        idVertF.push_back(p.id);
+    }
     for(Cell1d& c1d: f.Cell2DEdges){
         c1d = polyMesh.MapCell1D.at(c1d.id);
-        if(!c1d.old){
+        //if(!c1d.old){
             unsigned int vert0 = countline;
             unsigned int vert1 = (countline+1)%(f.numVert);
 
@@ -278,9 +282,9 @@ bool cuttingfractures(Cell2d& f, const Trace& t, PolygonalMesh& polyMesh, list<C
             if(intersLato(t, f.Cell2DVertices[vert0], f.Cell2DVertices[vert1], intersection, polyMesh)){
                 countcut++;
                 f.old = true;
-                if(checkIsNew(c1d, intersection, polyMesh, idSame)){
+                if(checkIsNew(polyMesh.Cell0DId, intersection, polyMesh, idSame)){
                     idLatitagliati.push_back(c1d.id);
-                    c1d.old = true;
+                    //c1d.old = true;
                     Cell0d newcell0d(id0D, intersection);
                     vector<unsigned int> ext1 = {f.Cell2DVertices[vert0].id, id0D};
                     Cell1d newcell1d1(id1D, ext1);
@@ -335,46 +339,90 @@ bool cuttingfractures(Cell2d& f, const Trace& t, PolygonalMesh& polyMesh, list<C
 
                 }
                 else{
-                    if(firstCell2d){
-                        posVert.push_back(idSame);
-                        if(f.Cell2DVertices[vert0].id==idSame){
+                    posVert.push_back(idSame);
+                    //Vector3d inters2;
+                    unsigned int vertice;
+                    if(checkIsNew(idVertF, intersection, polyMesh, vertice)){
+                        if(firstCell2d){
                             c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+                            c2new1.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
+                            c2new2.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
+                            c2new1.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[1]);
+                            c2new2.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[0]);
+
+                            wheretoinsert = c2new1.Cell2DEdges.size();
+                            Cell1d tempCell;
+                            c2new1.Cell2DEdges.push_back(tempCell);
+
+                            //c1d.tobecome[0].touched2D = c1d.touched2D;
+                            c1d.tobecome[1].touched2D.push_back(c2new1.id);
+                            //c1d.tobecome[1].touched2D = c1d.touched2D;
+                            c1d.tobecome[0].touched2D.push_back(c2new2.id);
+                            firstCell2d = false;
+                            beenFalse = true;
+
+                        }else{
                             c2new2.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+                            c2new2.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
+                            c2new1.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
+                            c2new2.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[1]);
+                            c2new1.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[0]);
 
-                            if(!beenFalse){
-                                c2new2.Cell2DEdges.push_back(c1d);
-                                c1d.touched2D.push_back(c2new2.id);
-                                firstCell2d = false;
-                                beenFalse = true;
+                            c1d.tobecome[1].touched2D.push_back(c2new2.id);
+                            c1d.tobecome[0].touched2D.push_back(c2new1.id);
 
-                            }else{
+                            firstCell2d = true;
+                        }
+                        f.Cell2DVertices[vert0].touched2D.push_back(c2new1.id);
+                        f.Cell2DVertices[vert0].touched2D.push_back(c2new2.id);
+
+
+                    }else{
+                        if(firstCell2d){
+                            //posVert.push_back(idSame);
+                            if(f.Cell2DVertices[vert0].id==idSame){
+                                c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+                                c2new2.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+
+                                if(!beenFalse){
+                                    c2new2.Cell2DEdges.push_back(c1d);
+                                    c1d.touched2D.push_back(c2new2.id);
+                                    firstCell2d = false;
+                                    beenFalse = true;
+
+                                }else{
+                                    c2new1.Cell2DEdges.push_back(c1d);
+                                    c1d.touched2D.push_back(c2new1.id);
+                                }
+
+                            }
+                            else{
                                 c2new1.Cell2DEdges.push_back(c1d);
                                 c1d.touched2D.push_back(c2new1.id);
+                                c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+                                if(!beenFalse){
+                                    wheretoinsert = c2new1.Cell2DEdges.size();
+                                    Cell1d tempCell;
+                                    c2new1.Cell2DEdges.push_back(tempCell);
+                                }
                             }
 
                         }
                         else{
-                            c2new1.Cell2DEdges.push_back(c1d);
-                            c1d.touched2D.push_back(c2new1.id);
-                            c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
-                            if(!beenFalse){
-                                wheretoinsert = c2new1.Cell2DEdges.size();
-                                Cell1d tempCell;
-                                c2new1.Cell2DEdges.push_back(tempCell);
+                            if(f.Cell2DVertices[vert0].id==idSame){
+                                c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+                            }else{
+                                firstCell2d = true;
                             }
+                            c2new2.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
+                            //c2new2.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
+                            //c2new1.Cell2DVertices.push_back(polyMesh.MapCell0D.at(idSame));
+                            //c2new2.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[0]);
+                            //c2new1.Cell2DEdges.push_back(polyMesh.MapCell1D.at(c1d.id).tobecome[1]);
+                            c2new2.Cell2DEdges.push_back(c1d);
+                            c1d.touched2D.push_back(c2new2.id);
                         }
-
                     }
-                    else{
-                        if(f.Cell2DVertices[vert0].id==idSame){
-                            c2new1.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);                           
-                        }else{
-                            firstCell2d = true;
-                        }
-                        c2new2.Cell2DVertices.push_back(f.Cell2DVertices[vert0]);
-                        c2new2.Cell2DEdges.push_back(c1d);
-                        c1d.touched2D.push_back(c2new2.id);
-                    }                    
                 }
             }
             else{
@@ -393,7 +441,7 @@ bool cuttingfractures(Cell2d& f, const Trace& t, PolygonalMesh& polyMesh, list<C
                 }
             }            
             countline++;
-        }
+        //}
     }
     if(!f.old){
         id2D = id2D-2;
@@ -406,9 +454,17 @@ bool cuttingfractures(Cell2d& f, const Trace& t, PolygonalMesh& polyMesh, list<C
             polyMesh.MapCell1D.at(cc1.id) = cc1;
             polyMesh.MapCell2D.at(f.id).Cell2DVertices[vert0] = f.Cell2DVertices[vert0];
             polyMesh.MapCell2D.at(f.id).Cell2DEdges[vert0] = cc1;
+            if(cc1.old){
+                polyMesh.MapCell1D.at(cc1.tobecome[0].id)  = cc1.tobecome[0];
+                polyMesh.MapCell1D.at(cc1.tobecome[1].id)  = cc1.tobecome[1];
+            }
+            if(!cc1.tobecome.empty()){
+                polyMesh.MapCell1D.at(cc1.id).old = true;
+            }
+            //polyMesh.MapCell1D.at(cc1.id) = cc1;
             vert0++;
         }
-        polyMesh.MapCell2D.at(f.id) = f;
+        //polyMesh.MapCell2D.at(f.id) = f;
 
         Cell1d c1middle;
         c1middle.id = id1D++;
@@ -702,9 +758,10 @@ vector<PolygonalMesh> newpolygon(FractureMesh& mesh){
                     if(estremiTracciaInside && !f.onEdge.at(trace.id)){
                         if(cuttingfractures(cc, trace, pm, next)){
                             while(!next.empty()){
-                                if(!next.front().old){
+                                Cell2d &toCut = next.front();
+                                if(!toCut.old){
                                     vector<Vector3d> ver;
-                                    for(Cell0d& c0: next.front().Cell2DVertices){
+                                    for(Cell0d& c0: toCut.Cell2DVertices){
                                         ver.push_back(c0.coordinates);
                                     }
                                     bool estremiTracciaInside2 = false;
@@ -717,7 +774,101 @@ vector<PolygonalMesh> newpolygon(FractureMesh& mesh){
                                         intersezioniSuRetta(estremiTracciaInside2, estremi, interRetta, copiacordiTrace);
                                     }
                                     if(estremiTracciaInside2)
-                                        bool cutted = cuttingfractures(next.front(), trace, pm, next);
+                                        bool cutted = cuttingfractures(toCut, trace, pm, next);
+                                    else{
+                                        Cell2d c2new3;
+                                        c2new3.id = id2D;
+                                        vector<unsigned int> listaidvertici;
+                                        vector<unsigned int> listaidlati;
+                                        toCut.old = true;
+                                        unsigned int vert = 0;
+                                        for(Cell1d& lati: toCut.Cell2DEdges){
+                                            unsigned int idvert0 = toCut.Cell2DVertices[vert].id;
+                                            if(pm.MapCell1D.at(lati.id).old){
+                                                c2new3.Cell2DVertices.push_back(pm.MapCell0D.at(idvert0));
+                                                listaidvertici.push_back(idvert0);
+                                                Cell1d& c1 = pm.MapCell1D.at(lati.id).tobecome[0];
+                                                Cell1d& c2 = pm.MapCell1D.at(lati.id).tobecome[1];
+                                                c2new3.Cell2DVertices.push_back(pm.MapCell0D.at(c2.extremes[0]));
+                                                c2new3.Cell2DEdges.push_back(c2);
+                                                listaidlati.push_back(c2.id);
+                                                c2new3.Cell2DEdges.push_back(c1);
+                                                listaidlati.push_back(c1.id);
+                                                listaidvertici.push_back(c2.extremes[0]);
+                                                pm.MapCell1D.at(c1.id).touched2D.push_back(c2new3.id);
+                                                pm.MapCell1D.at(c2.id).touched2D.push_back(c2new3.id);
+                                                pm.MapCell1D.at(lati.id).tobecome[0].touched2D.push_back(c2new3.id);
+                                                pm.MapCell1D.at(lati.id).tobecome[1].touched2D.push_back(c2new3.id);
+
+                                            }else{
+                                                c2new3.Cell2DVertices.push_back(pm.MapCell0D.at(idvert0));
+                                                c2new3.Cell2DEdges.push_back(pm.MapCell1D.at(lati.id));
+                                                listaidvertici.push_back(idvert0);
+                                                listaidlati.push_back(lati.id);
+                                                pm.MapCell1D.at(lati.id).touched2D.push_back(c2new3.id);
+                                            }
+
+                                            vert++;
+                                        }
+
+                                        pm.Cell2DId.push_back(id2D);
+                                        c2new3.numVert = listaidvertici.size();
+                                        pm.MapCell2D[id2D] = c2new3;
+                                        pm.MapCell2DVertices[id2D] = listaidvertici;
+                                        pm.MapCell2DEdges[id2D++] = listaidlati;
+                                        pm.MapCell2D[toCut.id]=toCut;
+
+                                    }
+
+                                        /*for(const unsigned int& id: idLatitagliati){
+                                            for(unsigned int& c2: MapCell1D.at(id).touched2D){
+                                                if(!MapCell2D.at(c2).old){
+                                                    MapCell2D.at(c2).old = true;
+                                                    Cell2d c2new3;
+                                                    c2new3.id = id2d;
+                                                    vector<unsigned int> listaidvertici;
+                                                    vector<unsigned int> listaidlati;
+                                                    unsigned int vert = 0;
+                                                    for(Cell1d& lati: MapCell2D.at(c2).Cell2DEdges){
+                                                        unsigned int idvert0 = MapCell2D.at(c2).Cell2DVertices[vert].id;
+                                                        if(MapCell1D.at(lati.id).old){
+                                                            c2new3.Cell2DVertices.push_back(MapCell0D.at(idvert0));
+                                                            listaidvertici.push_back(idvert0);
+                                                            Cell1d& c1 = MapCell1D.at(id).tobecome[0];
+                                                            Cell1d& c2 = MapCell1D.at(id).tobecome[1];
+
+                                                            c2new3.Cell2DVertices.push_back(MapCell0D.at(c2.extremes[0]));
+                                                            c2new3.Cell2DEdges.push_back(c2);
+                                                            listaidlati.push_back(c2.id);
+                                                            c2new3.Cell2DEdges.push_back(c1);
+                                                            listaidlati.push_back(c1.id);
+                                                            listaidvertici.push_back(c2.extremes[0]);
+                                                            MapCell1D.at(c1.id).touched2D.push_back(c2new3.id);
+                                                            MapCell1D.at(c2.id).touched2D.push_back(c2new3.id);
+
+                                                        }else{
+                                                            c2new3.Cell2DVertices.push_back(MapCell0D.at(idvert0));
+                                                            c2new3.Cell2DEdges.push_back(MapCell1D.at(lati.id));
+                                                            listaidvertici.push_back(idvert0);
+                                                            listaidlati.push_back(lati.id);
+                                                            MapCell1D.at(lati.id).touched2D.push_back(c2new3.id);
+                                                        }
+                                                        vert++;
+                                                    }
+
+                                                    Cell2DId.push_back(id2d);
+                                                    c2new3.numVert = listaidvertici.size();
+                                                    MapCell2D[id2d] = c2new3;
+                                                    MapCell2DVertices[id2d] = listaidvertici;
+                                                    MapCell2DEdges[id2d++] = listaidlati;
+                                                    next.push_back(c2new3);
+                                                    MapCell1D.at(id).tobecome[0].touched2D.push_back(c2new3.id);
+                                                    MapCell1D.at(id).tobecome[1].touched2D.push_back(c2new3.id);
+
+                                                }
+                                            }
+                                        }
+                                    }*/
                                 }
                                 next.pop_front();
                             }
