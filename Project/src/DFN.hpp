@@ -410,8 +410,6 @@ vector<PolygonalMesh> newpolygon(FractureMesh& mesh);
 
 void printingPolygonMesh(const vector<PolygonalMesh>& pm, const string& file);
 
-bool checkIsNew(const Cell1d& c2d, const Vector3d& point, const PolygonalMesh& pm, unsigned int& id); //fatto
-
-
+bool checkIsNew(const Cell1d& c2d, const Vector3d& point, const PolygonalMesh& pm, unsigned int& id);
+#endif
 }
-#endif // DFN_HPP

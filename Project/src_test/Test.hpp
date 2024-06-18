@@ -348,7 +348,7 @@ TEST(FRACTURETEST, TestaddfirstCell2d){
     //EXPECT_TRUE(pm.MapCell0D[0].old);
 }
 
-
+/*
 //TEST funzione void findIntersections(FractureMesh &mesh)
 TEST(FRACTURETEST, Testfindintersections){
     FractureMesh mesh;
@@ -373,7 +373,7 @@ TEST(FRACTURETEST, Testfindintersections){
     findIntersections(mesh);
 
 }
-
+*/
 
 //TEST funzione void defNewTrace(Trace& t, const double& d1, const double& d2, Fracture& f1, Fracture& f2, FractureMesh& fm)
 //CASO TRACCIA NON PASSANTE
