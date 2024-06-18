@@ -19,30 +19,133 @@ namespace FractureLibrary {
 double tol = 1000 * numeric_limits<double>::epsilon();
 unsigned int idTrace = 0;
 
-void defNewTrace(Trace& t, const double& d1, const double& d2, Fracture& f1, Fracture& f2, FractureMesh& fm){
-    double lunghezzatraccia = dist(t.coordTrace[0],t.coordTrace[1]);
-    t.len = lunghezzatraccia;
-    t.id = idTrace;
-    fm.MapTrace[idTrace++] = t;
-    f1.numTrac++;
-    f2.numTrac++;
 
-    if(abs(lunghezzatraccia-d1)<tol){
-        f1.listPas.push_back(t);
-        f1.tips[t.id] = false;
-    }else{
-        f1.listNonpas.push_back(t);
-        f1.tips[t.id] = true;
+// funzione per importare i dati da un file di input
+bool ImportFR_data(const string &filename, FractureMesh& mesh)
+{
+    //FractureMesh mesh;
+    ifstream file;
+    file.open(filename);
+    if(file.fail())
+        return false;
+    string line;
+    int N = 0;
+    int i = 0;
+    while (!file.eof())
+    {
+        getline(file, line);
+
+        // Skip Comment Line
+        if(line[0] != '#')
+            break;
     }
-    if(abs(lunghezzatraccia - d2)<tol){
-        f2.listPas.push_back(t);
-        f2.tips[t.id] = false;
-    }else{
-        f2.listNonpas.push_back(t);
-        f2.tips[t.id] = true;
+
+    istringstream converter(line);
+    converter.str(line);
+    converter >> N; // stampo il numero di fratture nel file
+    mesh.NumFractures = N;
+    mesh.FractureId.resize(N);
+    mesh.MapFractures.resize(N);
+
+    char sep;
+    unsigned int id = 0;
+    unsigned int numvertices = 0;
+    for (i=0; i < N; i++)
+    {
+        Fracture f;
+        getline(file,line);
+        getline(file, line); //leggo l'identificatore
+        istringstream converter(line);
+        converter >> id >> sep >> numvertices;
+        f.id = id;
+        mesh.FractureId[i]=id;
+        f.NumVertices = numvertices;
+        getline(file,line); // leggo riga vertici senza stamparla (vediamo se farlo tutto insieme le eliminazioni)
+
+        Vector3d bary;
+        f.vertices.resize(numvertices);
+
+        for(unsigned int j=0; j<3; j++){
+            getline(file, line);
+            replace(line.begin(),line.end(),';',' ');
+            istringstream converter(line);
+            bary[j] = 0.0;
+
+            for(unsigned int t =0; t<numvertices; t++){
+                double a = 0.0;
+                converter >> a;
+                f.vertices[t][j] = a;
+                bary[j]+=a;
+            }
+            bary[j] = bary[j]/numvertices;
+        }
+
+        f.barycentre = bary;
+        mesh.MapFractures[id]=f;
+
     }
+
+    file.close();
+    return true;
+
 }
 
+
+// funzione per ordinare in base alla lunghezza
+bool orderLen(const Trace &a, const Trace &b){
+    return a.len >= b.len;
+}
+
+
+// comparatore usato per ordinare in base al primo elemento di un vettore
+bool compareFirstElement(const Vector3d& a, const Vector3d& b) {
+    return (a[0] - b[0])<tol;
+}
+
+
+//calcolo distanza tra due punti
+double dist(Vector3d v1, Vector3d v2){
+    double sum= 0.0;
+    for(unsigned int j =0; j<3; j++){
+        double d = (v1[j] - v2[j])*(v1[j] - v2[j]);
+        sum += d;
+    }
+    return sqrt(sum);
+}
+
+
+// funzione per controllare se un punto appartiene ad una retta
+bool onSegment(const Vector3d& p, const Vector3d& a, const Vector3d& b){
+    double t = 0.0;
+    unsigned int usata = 0;
+    for(unsigned int i=0; i<3; i++){
+        if(abs(b[i]-a[i])>tol){
+            t = (p[i] - a[i])/(b[i]-a[i]);
+            usata = i;
+            break;
+        }
+    }
+
+    vector<bool> check(2,false);
+    unsigned int index = 0;
+    for(unsigned int i=0; i<3; i++){
+        if(i!=usata){
+            double y = a[i] + t*(b[i]-a[i]);
+            //cout << "p[i]: " << p[i] << " y: " << y << endl;
+            if(abs(p[i] - y)<tol){
+                check[index] = true;
+            }
+            index++;
+        }
+    }
+    if(check[0] && check[1])
+        return true;
+    else
+        return false;
+}
+
+
+// funzione per capire se un segmento giace su una retta
 bool  sameLine(const Vector3d& ret, const Vector3d& p, const vector<Vector3d>& f, vector<Vector3d>& coordinate){
     double norma1 = ret.norm();
     Vector3d rettaN = {ret[0]/norma1, ret[1]/norma1, ret[2]/norma1};
@@ -67,8 +170,42 @@ bool  sameLine(const Vector3d& ret, const Vector3d& p, const vector<Vector3d>& f
 }
 
 
+// funzione per capire se due segmenti giacenti sulla medesima retta si intersecano
+void intersezioniSuRetta(bool& bole, vector<Vector3d>& trace, const vector<Vector3d>& s1, const vector<Vector3d>& s2){
+    if(s1[0][0]  <= s2[0][0]){
+        if(abs(s1[1][0]-s2[0][0])>tol && (s1[1][0]  <= s2[0][0])){
+            return;
+        }
+        else if((s1[1][0] >= s2[0][0])  && (s1[1][0] <= s2[1][0]) ){
+            trace[0] = s2[0];
+            trace[1] = s1[1];
+            bole = true;
+        }
+        else if(s1[1][0] >= s2[1][0]){
+            trace[0] = s2[0];
+            trace[1] = s2[1];
+            bole = true;
+        }
+
+    }else if(s2[0][0]  <= s1[0][0]){
+        if(abs(s2[1][0]-s1[0][0])>tol && (s2[1][0]  < s1[0][0])){
+            return;
+        }
+        else if((s2[1][0] >=  s1[0][0]) && (s2[1][0] <= s1[1][0])){
+            trace[0] = s1[0];
+            trace[1] = s2[1];
+            bole = true;
+        }
+        else if((s2[1][0] >= s1[1][0])){
+            trace[0] = s1[0];
+            trace[1] = s1[1];
+            bole = true;
+        }
+    }
+}
 
 
+// funzione per trovare l'intersezione tra una traccia e un lato di una frattura
 bool intersLato(const Trace& tra, const Cell0d& c1, const Cell0d& c2, Vector3d& inters, const PolygonalMesh& pm){
     Vector3d t = tra.retta;
     Vector3d p = tra.coordTrace[0];
@@ -97,7 +234,7 @@ bool intersLato(const Trace& tra, const Cell0d& c1, const Cell0d& c2, Vector3d& 
 }
 
 
-
+// funzione per trovare tutte le intersezioni tra la retta direttrice di una traccia e un poligono
 vector<Vector3d> intersezionipoligonoretta(const Vector3d& t, const Vector3d& p, vector<Vector3d>& f, bool& onEdge){
     vector<Vector3d> intersectionsF = {};
     intersectionsF.reserve(2);
@@ -145,100 +282,165 @@ vector<Vector3d> intersezionipoligonoretta(const Vector3d& t, const Vector3d& p,
 }
 
 
+// funzione per definire una nuova traccia
+void defNewTrace(Trace& t, const double& d1, const double& d2, Fracture& f1, Fracture& f2, FractureMesh& fm){
+    double lunghezzatraccia = dist(t.coordTrace[0],t.coordTrace[1]);
+    t.len = lunghezzatraccia;
+    t.id = idTrace;
+    fm.MapTrace[idTrace++] = t;
+    f1.numTrac++;
+    f2.numTrac++;
+
+    if(abs(lunghezzatraccia-d1)<tol){
+        f1.listPas.push_back(t);
+        f1.tips[t.id] = false;
+    }else{
+        f1.listNonpas.push_back(t);
+        f1.tips[t.id] = true;
+    }
+    if(abs(lunghezzatraccia - d2)<tol){
+        f2.listPas.push_back(t);
+        f2.tips[t.id] = false;
+    }else{
+        f2.listNonpas.push_back(t);
+        f2.tips[t.id] = true;
+    }
+}
+
+
+// funzione per risolvere un sistema tramite il metodo PALU
 VectorXd PALUSolver(const MatrixXd& a, const VectorXd& b){
     VectorXd solutionPALU = a.fullPivLu().solve(b);
     return solutionPALU;
 
 }
 
-bool orderLen(const Trace &a, const Trace &b){
-    return a.len >= b.len;
-}
 
-bool compareFirstElement(const Vector3d& a, const Vector3d& b) {
-    return (a[0] - b[0])<tol;
-}
+// funzione che ciclando du tutte le fratture ne individua le tracce passanti e non passanti
+void findIntersections(FractureMesh &mesh){
+    for(unsigned int id = 0; id<mesh.NumFractures; id++){
+        Fracture &f = mesh.MapFractures[id];
+        Vector3d planeF = f.calcoloPiano();
 
+        //ciclo sui poigoni successivi
+        for(unsigned int i=id+1; i<mesh.NumFractures; i++){
+            bool inter = false;
+            vector<Vector3d> trace = {};
+            trace.resize(2);
+            Vector3d t = {};
+            Vector3d p = {};
+            double distanzainF = 0;
+            double distanzainFC = 0;
+            Fracture &fConf = mesh.MapFractures[i];
+            f.isOnEdge = false;
+            fConf.isOnEdge =false;
+            Vector3d planeFConf = fConf.calcoloPiano();
 
-//calcolo distanza tra due punti
-double dist(Vector3d v1, Vector3d v2){
-    double sum= 0.0;
-    for(unsigned int j =0; j<3; j++){
-        double d = (v1[j] - v2[j])*(v1[j] - v2[j]);
-        sum += d;
-    }
-    return sqrt(sum);
-}
+            if((planeF.cross(planeFConf))[0]==0 && (planeF.cross(planeFConf))[1]==0 && (planeF.cross(planeFConf))[2]==0){
+                if(abs(planeF[0]*fConf.plane[3] - planeFConf[0]*f.plane[3])<tol){  //sono complanari
+                    for(unsigned int j=0; j<f.NumVertices; j++){
+                        unsigned int vert0 = j;
+                        unsigned int vert1 = (j+1)%f.NumVertices ;
 
+                        Vector3d retta1 = {f.vertices[vert1][0]-f.vertices[vert0][0],f.vertices[vert1][1]-f.vertices[vert0][1],f.vertices[vert1][2]-f.vertices[vert0][2]};
 
+                        for(unsigned int k=0; k<fConf.NumVertices; k++){
+                            unsigned int vert2 = k;
+                            unsigned int vert3 = (k+1)%fConf.NumVertices ;
 
-//controllo se un punto appartiene ad un segmento
-bool onSegment(const Vector3d& p, const Vector3d& a, const Vector3d& b){
-    double t = 0.0;
-    unsigned int usata = 0;
-    for(unsigned int i=0; i<3; i++){
-        if(abs(b[i]-a[i])>tol){
-            t = (p[i] - a[i])/(b[i]-a[i]);
-            usata = i;
-            break;
-        }
-    }
-
-    vector<bool> check(2,false);
-    unsigned int index = 0;
-    for(unsigned int i=0; i<3; i++){
-        if(i!=usata){
-            double y = a[i] + t*(b[i]-a[i]);
-            //cout << "p[i]: " << p[i] << " y: " << y << endl;
-            if(abs(p[i] - y)<tol){
-                check[index] = true;
+                            vector<Vector3d> interFC;
+                            if(sameLine(retta1, f.vertices[0], fConf.vertices, interFC)){
+                                vector<Vector3d> seg1 = {f.vertices[vert0], f.vertices[vert1]};
+                                vector<Vector3d> seg2 = {fConf.vertices[vert2], fConf.vertices[vert3]};
+                                intersezioniSuRetta(inter, trace, seg1, seg2);
+                                if(inter){
+                                    f.isOnEdge = true;
+                                    fConf.isOnEdge = true;
+                                    distanzainF = dist(f.vertices[vert0], f.vertices[vert1]);
+                                    distanzainFC = dist(fConf.vertices[vert2], fConf.vertices[vert3]);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+                else{ //sono paralleli
+                    continue;
+                }
             }
-            index++;
+
+            else if((dist(f.barycentre, fConf.barycentre) - (f.maxDist() + fConf.maxDist())) > tol ){
+                // sicuramente non si intersecano perchè troppo lontane
+                continue;
+
+            }
+            else { //se non sono complanari calcolo le intersezioni tra i piani
+                t = planeF.cross(planeFConf);
+
+                Matrix3d A;
+                A.row(0) = planeF;
+                A.row(1) = planeFConf;
+                A.row(2) = t;
+                Vector3d b;
+                b[0] = -f.plane[3];
+                b[1] = -fConf.plane[3];
+                b[2] = 0.0;
+
+                if(A.determinant() == 0){
+                    break; //di nuovo il caso di complanarità, controlliamo solo per sicurezza
+                }
+
+                p = PALUSolver(A, b);
+
+                //calcolo le interseioni dei lati della fracture con la retta di interseione dei piani
+                vector<Vector3d> intersectionsF = intersezionipoligonoretta(t, p, f.vertices, f.isOnEdge);
+
+                if(intersectionsF.size()==0){ // se nessuno dei lati del poligono interseca la retta allora sicuramente i due poligono in esame
+                    // non si iintersecano -> passo a confromtarlo con un altro poligono
+                    //cout << "Le figure " << id <<" e " << i <<" non si intersecano perche' la prima non e' attraversata dalla retta di intersezione tra i piani" << endl;
+                    continue;
+                }
+
+                //calcolo le intersezioni della retta con l'altra fracture
+                vector<Vector3d> intersectionsFC = intersezionipoligonoretta(t,p,fConf.vertices, fConf.isOnEdge);
+
+                if(intersectionsFC.size()==0){
+                    continue;
+                }
+
+                // calcolo le interseioni tra i due segmenti tovati
+                sort(intersectionsF.begin(), intersectionsF.end(), compareFirstElement);
+                sort(intersectionsFC.begin(), intersectionsFC.end(), compareFirstElement);
+
+                intersezioniSuRetta(inter, trace, intersectionsF, intersectionsFC);
+
+                if(inter){
+                    distanzainF = dist(intersectionsF[0],intersectionsF[1]);
+                    distanzainFC = dist(intersectionsFC[0], intersectionsFC[1]);
+                }
+            }
+
+            if(inter){
+                Trace newTrace;
+                newTrace.coordTrace.resize(2);
+                newTrace.fraId[0] =id;
+                newTrace.fraId[1] = i;
+                newTrace.coordTrace = trace;
+                newTrace.retta = t;
+                newTrace.p = p;
+                defNewTrace(newTrace, distanzainF, distanzainFC, f, fConf, mesh);
+                f.onEdge[newTrace.id] = f.isOnEdge;
+                fConf.onEdge[newTrace.id] = fConf.isOnEdge;
+            }
         }
+
+        f.listPas.sort(orderLen);
+        f.listNonpas.sort(orderLen);
     }
-    if(check[0] && check[1])
-        return true;
-    else
-        return false;
 }
 
 
-void intersezioniSuRetta(bool& bole, vector<Vector3d>& trace, const vector<Vector3d>& s1, const vector<Vector3d>& s2){
-    if(s1[0][0]  <= s2[0][0]){
-        if(abs(s1[1][0]-s2[0][0])>tol && (s1[1][0]  <= s2[0][0])){
-            return;
-        }
-        else if((s1[1][0] >= s2[0][0])  && (s1[1][0] <= s2[1][0]) ){
-            trace[0] = s2[0];
-            trace[1] = s1[1];
-            bole = true;
-        }
-        else if(s1[1][0] >= s2[1][0]){
-            trace[0] = s2[0];
-            trace[1] = s2[1];
-            bole = true;
-        }
-
-    }else if(s2[0][0]  <= s1[0][0]){
-        if(abs(s2[1][0]-s1[0][0])>tol && (s2[1][0]  < s1[0][0])){
-            return;
-        }
-        else if((s2[1][0] >=  s1[0][0]) && (s2[1][0] <= s1[1][0])){
-            trace[0] = s1[0];
-            trace[1] = s2[1];
-            bole = true;
-        }
-        else if((s2[1][0] >= s1[1][0])){
-            trace[0] = s1[0];
-            trace[1] = s1[1];
-            bole = true;
-        }
-    }
-}
-
-
-
-
+// funzione che determina se un punto è già presente nella PolygonalMesh
 bool checkIsNew(const vector<unsigned int>& c2d, const Vector3d& point, const PolygonalMesh& pm, unsigned int& id){
     for(unsigned int c0d: c2d){
         Vector3d v = (pm.MapCell0D.at(c0d).coordinates);
@@ -254,6 +456,8 @@ unsigned int id0D = 0;
 unsigned int id1D = 0;
 unsigned int id2D = 0;
 
+
+// funzione per dividere una cella 2D quando questa viene tagliata lungo un lato
 void addNewVertAndEdg(bool& firstCell2d, unsigned int& wheretoinsert, Cell2d& c2new1, Cell2d& c2new2, bool& beenFalse,
                       vector<Cell1d>& forming,vector<Cell0d>& forming0d, Vector3d& intersection, Cell1d& c1d,
                       unsigned int& vert0, unsigned int& vert1, Cell2d& f){
@@ -310,6 +514,8 @@ void addNewVertAndEdg(bool& firstCell2d, unsigned int& wheretoinsert, Cell2d& c2
     c1d.tobecome.push_back(newcell1d2);
 }
 
+
+// funzione per dividere una cella 2D quando questa viene tagliata su un lato ma da una cella 0D già presente nella PolygonalMesh
 void addNewEdg(bool& firstCell2d, unsigned int& wheretoinsert, Cell2d& c2new1, Cell2d& c2new2, bool& beenFalse, Cell1d& c1d,
                         Cell2d& f, PolygonalMesh& polyMesh, unsigned int& vert0, unsigned int& idSame){
     if(firstCell2d){
@@ -344,6 +550,8 @@ void addNewEdg(bool& firstCell2d, unsigned int& wheretoinsert, Cell2d& c2new1, C
     f.Cell2DVertices[vert0].touched2D.push_back(c2new2.id);
 }
 
+
+// funzione per dividere una cella 2D che viene tagliata in un vertice
 void dividingExistingVert(const unsigned int& idSame, Cell2d& f, unsigned int& vert0, bool& firstCell2d, bool& beenFalse,
                         Cell2d& c2new1, Cell2d& c2new2, Cell1d& c1d, unsigned int& wheretoinsert ){
     if(firstCell2d){
@@ -387,6 +595,7 @@ void dividingExistingVert(const unsigned int& idSame, Cell2d& f, unsigned int& v
 }
 
 
+// funzione per tagliare una cella 2D e definire le due nuove celle 2D
 bool cuttingfractures(Cell2d& f, const Trace& t, PolygonalMesh& polyMesh, list<Cell2d>& next){
     unsigned int idSame;
     bool firstCell2d = true;
@@ -514,204 +723,7 @@ bool cuttingfractures(Cell2d& f, const Trace& t, PolygonalMesh& polyMesh, list<C
 }
 
 
-
-
-
-// importo i dati dai file
-bool ImportFR_data(const string &filename, FractureMesh& mesh)
-{
-    //FractureMesh mesh;
-    ifstream file;
-    file.open(filename);
-    if(file.fail())
-        return false;
-    string line;
-    int N = 0;
-    int i = 0;
-    while (!file.eof())
-    {
-        getline(file, line);
-
-        // Skip Comment Line
-        if(line[0] != '#')
-            break;
-    }
-
-    istringstream converter(line);
-    converter.str(line);
-    converter >> N; // stampo il numero di fratture nel file
-    mesh.NumFractures = N;
-    mesh.FractureId.resize(N);
-    mesh.MapFractures.resize(N);
-
-    char sep;
-    unsigned int id = 0;
-    unsigned int numvertices = 0;
-    for (i=0; i < N; i++)
-    {
-        Fracture f;
-        getline(file,line);
-        getline(file, line); //leggo l'identificatore
-        istringstream converter(line);
-        converter >> id >> sep >> numvertices;
-        f.id = id;
-        mesh.FractureId[i]=id;
-        f.NumVertices = numvertices;
-        getline(file,line); // leggo riga vertici senza stamparla (vediamo se farlo tutto insieme le eliminazioni)
-
-        Vector3d bary;
-        f.vertices.resize(numvertices);
-
-        for(unsigned int j=0; j<3; j++){
-            getline(file, line);
-            replace(line.begin(),line.end(),';',' ');
-            istringstream converter(line);
-            bary[j] = 0.0;
-
-            for(unsigned int t =0; t<numvertices; t++){
-                double a = 0.0;
-                converter >> a;
-                f.vertices[t][j] = a;
-                bary[j]+=a;
-            }
-            bary[j] = bary[j]/numvertices;
-        }
-
-        f.barycentre = bary;
-        mesh.MapFractures[id]=f;
-
-    }
-
-    file.close();
-    return true;
-
-}
-
-
-
-void findIntersections(FractureMesh &mesh){
-    for(unsigned int id = 0; id<mesh.NumFractures; id++){
-        Fracture &f = mesh.MapFractures[id];
-        Vector3d planeF = f.calcoloPiano();
-
-        //ciclo sui poigoni successivi
-        for(unsigned int i=id+1; i<mesh.NumFractures; i++){
-            bool inter = false;
-            vector<Vector3d> trace = {};
-            trace.resize(2);
-            Vector3d t = {};
-            Vector3d p = {};
-            double distanzainF = 0;
-            double distanzainFC = 0;
-            Fracture &fConf = mesh.MapFractures[i];
-            f.isOnEdge = false;
-            fConf.isOnEdge =false;
-            Vector3d planeFConf = fConf.calcoloPiano();
-
-            if((planeF.cross(planeFConf))[0]==0 && (planeF.cross(planeFConf))[1]==0 && (planeF.cross(planeFConf))[2]==0){
-                if(abs(planeF[0]*fConf.plane[3] - planeFConf[0]*f.plane[3])<tol){  //sono complanari
-                    for(unsigned int j=0; j<f.NumVertices; j++){
-                        unsigned int vert0 = j;
-                        unsigned int vert1 = (j+1)%f.NumVertices ;
-
-                        Vector3d retta1 = {f.vertices[vert1][0]-f.vertices[vert0][0],f.vertices[vert1][1]-f.vertices[vert0][1],f.vertices[vert1][2]-f.vertices[vert0][2]};
-
-                        for(unsigned int k=0; k<fConf.NumVertices; k++){
-                            unsigned int vert2 = k;
-                            unsigned int vert3 = (k+1)%fConf.NumVertices ;
-
-                            vector<Vector3d> interFC;
-                            if(sameLine(retta1, f.vertices[0], fConf.vertices, interFC)){
-                                vector<Vector3d> seg1 = {f.vertices[vert0], f.vertices[vert1]};
-                                vector<Vector3d> seg2 = {fConf.vertices[vert2], fConf.vertices[vert3]};
-                                intersezioniSuRetta(inter, trace, seg1, seg2);
-                                if(inter){
-                                    f.isOnEdge = true;
-                                    fConf.isOnEdge = true;
-                                    distanzainF = dist(f.vertices[vert0], f.vertices[vert1]);
-                                    distanzainFC = dist(fConf.vertices[vert2], fConf.vertices[vert3]);
-                                }
-                                break;
-                            }
-                        }
-                    }
-                }
-                else{ //sono paralleli
-                    continue;
-                }
-            }
-
-            else if((dist(f.barycentre, fConf.barycentre) - (f.maxDist() + fConf.maxDist())) > tol ){
-                // sicuramente non si intersecano perchè troppo lontane
-                continue;
-
-            }
-            else { //se non sono complanari calcolo le intersezioni tra i piani
-                t = planeF.cross(planeFConf);
-
-                Matrix3d A;
-                A.row(0) = planeF;
-                A.row(1) = planeFConf;
-                A.row(2) = t;
-                Vector3d b;
-                b[0] = -f.plane[3];
-                b[1] = -fConf.plane[3];
-                b[2] = 0.0;
-
-                if(A.determinant() == 0){
-                    break; //di nuovo il caso di complanarità, controlliamo solo per sicurezza
-                }
-
-                p = PALUSolver(A, b);
-
-                //calcolo le interseioni dei lati della fracture con la retta di interseione dei piani
-                vector<Vector3d> intersectionsF = intersezionipoligonoretta(t, p, f.vertices, f.isOnEdge);
-
-                if(intersectionsF.size()==0){ // se nessuno dei lati del poligono interseca la retta allora sicuramente i due poligono in esame
-                    // non si iintersecano -> passo a confromtarlo con un altro poligono
-                    //cout << "Le figure " << id <<" e " << i <<" non si intersecano perche' la prima non e' attraversata dalla retta di intersezione tra i piani" << endl;
-                    continue;
-                }
-
-                //calcolo le intersezioni della retta con l'altra fracture
-                vector<Vector3d> intersectionsFC = intersezionipoligonoretta(t,p,fConf.vertices, fConf.isOnEdge);
-
-                if(intersectionsFC.size()==0){
-                    continue;
-                }
-
-                // calcolo le interseioni tra i due segmenti tovati
-                sort(intersectionsF.begin(), intersectionsF.end(), compareFirstElement);
-                sort(intersectionsFC.begin(), intersectionsFC.end(), compareFirstElement);
-
-                intersezioniSuRetta(inter, trace, intersectionsF, intersectionsFC);
-
-                if(inter){
-                    distanzainF = dist(intersectionsF[0],intersectionsF[1]);
-                    distanzainFC = dist(intersectionsFC[0], intersectionsFC[1]);
-                }
-            }
-
-            if(inter){
-                Trace newTrace;
-                newTrace.coordTrace.resize(2);
-                newTrace.fraId[0] =id;
-                newTrace.fraId[1] = i;
-                newTrace.coordTrace = trace;
-                newTrace.retta = t;
-                newTrace.p = p;
-                defNewTrace(newTrace, distanzainF, distanzainFC, f, fConf, mesh);
-                f.onEdge[newTrace.id] = f.isOnEdge;
-                fConf.onEdge[newTrace.id] = fConf.isOnEdge;
-            }
-        }
-
-        f.listPas.sort(orderLen);
-        f.listNonpas.sort(orderLen);
-    }
-}
-
-//funzione per controllare se la traccia non passante taglia una sotto-Cella2d
+// funzione per controllare se la traccia non passante taglia una sotto-Cella2d
 bool cuttedByNonPas(const vector<Vector3d>& copiacoordiTrace, const Cell2d& cc, const Fracture& f, const Trace& trace){
 
     vector<Vector3d> ver;
@@ -734,6 +746,8 @@ bool cuttedByNonPas(const vector<Vector3d>& copiacoordiTrace, const Cell2d& cc, 
         return false;
 }
 
+
+// funzione per definire una nuova cella 2D che non viene tagliata da una traccia ma che ha un lato che è stato tagliato
 void splitOneEdg(unsigned int& id2D, Cell2d& toCut, PolygonalMesh& pm){
     Cell2d c2new3;
     c2new3.id = id2D;
@@ -777,6 +791,8 @@ void splitOneEdg(unsigned int& id2D, Cell2d& toCut, PolygonalMesh& pm){
     pm.MapCell2D[toCut.id]=toCut;
 }
 
+
+// fuznione per formare tutte le nuove PolygonalMesh
 vector<PolygonalMesh> newpolygon(FractureMesh& mesh){
     vector<PolygonalMesh> newfigures;
 
@@ -839,7 +855,7 @@ vector<PolygonalMesh> newpolygon(FractureMesh& mesh){
 }
 
 
-//funzione per stampare tutte le polygonalMesh formate
+//funzione per stampare tutte le PolygonalMesh formate
 void printingPolygonMesh(const vector<PolygonalMesh>& vpm, const string& file){
     string filepath = "newPolygons_" + file.substr(4,file.length()-4);
     ofstream outfile(filepath);

@@ -72,7 +72,8 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/DFN/FR362_data.txt DESTINATION ${CMAKE_CUR
 add_executable(${PROJECT_NAME}
     main.cpp
     ${${CMAKE_PROJECT_NAME}_sources}
-    ${${CMAKE_PROJECT_NAME}_headers})
+    ${${CMAKE_PROJECT_NAME}_headers}
+    Documentazione/plant_uml_documentation)
 
 target_link_libraries(${PROJECT_NAME} ${DFN_LINKED_LIBRARIES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${${CMAKE_PROJECT_NAME}_includes})

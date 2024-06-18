@@ -270,14 +270,13 @@ struct PolygonalMesh
                 }
             }
         }
-
     }
 
 
 
 };
 
-bool cuttingfractures(Cell2d& f, const Trace& t, PolygonalMesh& polyMesh, vector<Cell2d>next);
+bool cuttingfractures(Cell2d& f, const Trace& t, PolygonalMesh& polyMesh, list<Cell2d>& next);
 
 bool intersLato(const Trace& t, const Cell0d& c1, const Cell0d& c2, Vector3d& inters, const PolygonalMesh& pm);
 
@@ -285,17 +284,9 @@ bool ImportFR_data(const string &filename, FractureMesh& mesh);
 
 void findIntersections(FractureMesh &mesh);
 
-void addingStuff(vector<bool>& angolo, vector<unsigned int> idLatitagliati, vector<Cell1d>& forming, vector<Cell0d>& forming0d, Cell2d& c2new1, Cell2d& c2new2, unsigned int& id2d, list<Cell2d>& next);
-
 void defNewTrace(Trace& t, const double& d1, const double& d2, Fracture& f1, Fracture& f2, FractureMesh& fm);
 
-void printingtraces(const string& file);
-
-void printingfractures(const string& file);
-
 vector<Vector3d> intersezionipoligonoretta(const Vector3d& t, const Vector3d &p, vector<Vector3d> &f, bool &onEdge);
-
-//vector<unsigned int> intersezionipoligonorettaLATI(const Vector3d& t, const Vector3d p, const Fracture& f, vector<unsigned int>toRemove, vector<Vector3d>& betaF);
 
 VectorXd PALUSolver(const MatrixXd& a, const VectorXd& b);
 

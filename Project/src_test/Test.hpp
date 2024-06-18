@@ -308,7 +308,7 @@ TEST(FRACTURETEST, Testintersezionisuretta2){
 }
 
 
-/*
+
 //TEST per la funzione  void printingtraces(const string& file)
 TEST(FRACTURETEST, Testprintingtraces){
     FractureMesh mesh;
@@ -324,7 +324,7 @@ TEST(FRACTURETEST, Testprintingtraces){
     string file = "    test_traccia    ";
     mesh.printingtraces(file);
 }
-*/
+
 
 //TEST per la funzione void convertFracture(const Fracture& f, unsigned int& idVert, unsigned int& idEdge, unsigned int& id2d)
 TEST(FRACTURETEST, TestconvertFracture){
@@ -558,87 +558,413 @@ TEST(POLYGONALTEST, testAddNewVertAndEdg2){
 
     addNewVertAndEdg(firstCell2d, wheretoinsert, nuovacella2d1, nuovacella2d2, beenFalse, forming, forming0d, inter, ab, vert0, vert1, cella2d);
     addNewVertAndEdg(firstCell2d, wheretoinsert, nuovacella2d1, nuovacella2d2, beenFalse, forming, forming0d, inter2, ab, vert0, vert1, cella2d);
+
     EXPECT_EQ(nuovacella2d1.Cell2DEdges.size(),3);
     EXPECT_EQ(nuovacella2d1.Cell2DVertices.size(),3);
     EXPECT_EQ(nuovacella2d2.Cell2DEdges.size(),2);
     EXPECT_EQ(nuovacella2d2.Cell2DVertices.size(),3);
 }
 
-TEST(POLYGONALTEST, addNewEdg){
+TEST(POLYGONALTEST, testaddNewEdg){
+    PolygonalMesh pm;
+    unsigned int id0 = 0;
+    unsigned int id1 = 1;
+    unsigned int id2 = 2;
+    unsigned int id3 = 3;
+    unsigned int id4 = 4;
+    Cell0d v0(id0, {0.0,0.0,0.0});
+    Cell0d v1(id1,{2.0,0.0,2.0});
+    Cell0d v2(id2,{0.0,2.0,2.0});
+    Cell0d v3(id3, {1.0,0.0,1.0}); //vertice già esistente da aggiungere al triangolo
+    Cell1d ab(id0, {0,1});
+    Cell1d bc(id1, {1,2});
+    Cell1d ca(id2, {2,0});
+    Cell1d ad(id3, {0,3});
+    Cell1d db(id4, {3,1});
+    bool firstCell2d = true;
+    bool beenFalse = false;
+    unsigned int wheretoinsert;
+    Cell2d nuovacella2d1;
+    Cell2d nuovacella2d2;
+    ab.tobecome = {db, ad};
+    pm.MapCell1D[id0] = ab;
+    pm.MapCell0D[id3] = v3;
+
+    unsigned int vert0 = 0;
+    unsigned int idSame = 3;
+    Cell2d cella2d;
+    cella2d.id = 0;
+    cella2d.numVert= 3;
+    cella2d.Cell2DEdges = {ab, bc, ca};
+    cella2d.Cell2DVertices = {v0, v1, v2};
+
+
+
+    addNewEdg(firstCell2d, wheretoinsert, nuovacella2d1, nuovacella2d2, beenFalse, ab, cella2d, pm, vert0, idSame);
+
+    EXPECT_EQ(nuovacella2d1.Cell2DEdges.size(),2);
+    EXPECT_EQ(nuovacella2d1.Cell2DVertices.size(),2);
+    EXPECT_EQ(nuovacella2d2.Cell2DEdges.size(),1);
+    EXPECT_EQ(nuovacella2d2.Cell2DVertices.size(),1);
+    EXPECT_EQ(nuovacella2d1.Cell2DVertices[1].id,3);
+    EXPECT_EQ(nuovacella2d2.Cell2DVertices[0].id,3);
+}
+
+TEST(POLYGONALTEST, testdividingExiting1){
+    PolygonalMesh pm;
+    vector<unsigned int> idvec = {0,1,2,3,4,5};
+    Cell0d v0(idvec[0], {-1.0,0.0,0.0});
+    Cell0d v1(idvec[1],{3.0,0.0,0.0});
+    Cell0d v2(idvec[2],{3.0,0.0,3.0});
+    Cell0d v3(idvec[3], {-1.0,0.0,3.0});
+    Cell0d v4(idvec[4], {1.0,0.0,0.0});
+
+    Cell1d ab(idvec[0], {0,1});
+    Cell1d bc(idvec[1], {1,2});
+    Cell1d cd(idvec[2], {2,3});
+    Cell1d da(idvec[3], {3,0});
+    Cell1d ae(idvec[4], {0,4});
+    Cell1d eb(idvec[5], {4,1});
+    Cell1d temp;
+    bool firstCell2d = false;
+    bool beenFalse = true;
+    unsigned int wheretoinsert;
+    Cell2d nuovacella2d1;
+    Cell2d nuovacella2d2;
+    nuovacella2d1.id = 1;
+    nuovacella2d1.Cell2DVertices = {v0, v4};
+    nuovacella2d1.Cell2DEdges = {ae, temp};
+    nuovacella2d2.id = 2;
+    nuovacella2d2.Cell2DVertices = {v4, v1};
+    nuovacella2d2.Cell2DEdges = {eb, bc};
+    unsigned int vert0 = 2;
+    unsigned int idSame = 3;
+    Cell2d cella2d;
+    cella2d.id = 0;
+    cella2d.numVert= 4;
+    cella2d.Cell2DEdges = {ab, bc, cd, da};
+    cella2d.Cell2DVertices = {v0, v1, v2, v3};
+
+    dividingExistingVert(idSame, cella2d, vert0, firstCell2d, beenFalse, nuovacella2d1, nuovacella2d2, cd, wheretoinsert);
+
+    EXPECT_EQ(nuovacella2d1.Cell2DEdges.size(),2);
+    EXPECT_EQ(nuovacella2d1.Cell2DVertices.size(),2);
+    EXPECT_EQ(nuovacella2d2.Cell2DEdges.size(),3);
+    EXPECT_EQ(nuovacella2d2.Cell2DVertices.size(),3);
 
 }
 
-/*, unsigned int& wheretoinsert, Cell2d& c2new1, Cell2d& c2new2, bool& beenFalse,
-                      vector<Cell1d>& forming,vector<Cell0d>& forming0d, Vector3d& intersection, Cell1d& c1d,
-                      unsigned int& vert0, unsigned int& vert1, Cell2d& f){
+TEST(POLYGONALTEST, testdividingExiting2){
+    vector<unsigned int> idvec = {0,1,2,3,4,5};
+    Cell0d v0(idvec[0], {-1.0,0.0,0.0});
+    Cell0d v1(idvec[1],{3.0,0.0,0.0});
+    Cell0d v2(idvec[2],{3.0,0.0,3.0});
+    Cell0d v3(idvec[3], {-1.0,0.0,3.0});
+    Cell0d v4(idvec[4], {1.0,0.0,0.0});
 
-}*/
+    Cell1d ab(idvec[0], {0,1});
+    Cell1d bc(idvec[1], {1,2});
+    Cell1d cd(idvec[2], {2,3});
+    Cell1d da(idvec[3], {3,0});
+    Cell1d ae(idvec[4], {0,4});
+    Cell1d eb(idvec[5], {4,1});
+    Cell1d temp;
+    bool firstCell2d = true;
+    bool beenFalse = true;
+    unsigned int wheretoinsert;
+    Cell2d nuovacella2d1;
+    Cell2d nuovacella2d2;
+    nuovacella2d1.id = 1;
+    nuovacella2d1.Cell2DVertices = {v0, v4};
+    nuovacella2d1.Cell2DEdges = {ae, temp};
+    nuovacella2d2.id = 2;
+    nuovacella2d2.Cell2DVertices = {v4, v1, v2};
+    nuovacella2d2.Cell2DEdges = {eb, bc, cd};
 
+    unsigned int vert0 = 3;
+    unsigned int idSame = 3;
+    Cell2d cella2d;
+    cella2d.id = 0;
+    cella2d.numVert= 4;
+    cella2d.Cell2DEdges = {ab, bc, cd, da};
+    cella2d.Cell2DVertices = {v0, v1, v2, v3};
 
+    dividingExistingVert(idSame, cella2d, vert0, firstCell2d, beenFalse, nuovacella2d1, nuovacella2d2, da, wheretoinsert);
 
-/*
-TEST(FRACTURETEST, TestPlotParaviewTraces){
+    EXPECT_EQ(nuovacella2d1.Cell2DEdges.size(),3);
+    EXPECT_EQ(nuovacella2d1.Cell2DVertices.size(),3);
+    EXPECT_EQ(nuovacella2d2.Cell2DEdges.size(),3);
+    EXPECT_EQ(nuovacella2d2.Cell2DVertices.size(),4);
+    EXPECT_EQ(nuovacella2d1.Cell2DVertices[2].id,idSame);
+    EXPECT_EQ(nuovacella2d2.Cell2DVertices[3].id,idSame);
+}
 
-    MatrixXd points = MatrixXd::Zero(3, 4);
+TEST(POLYGONALTEST, testCuttingFracture1){
+    PolygonalMesh pm;
+    list<Cell2d> next;
+    vector<unsigned int> idvec = {0,1,2,3,4,5};
+    Cell0d v0(idvec[0], {2.0,-1.0,0.0});
+    Cell0d v1(idvec[1],{2.0,1.0,0.0});
+    Cell0d v2(idvec[2],{-2.0,1.0,4.0});
+    Cell0d v3(idvec[3], {-2.0,-1.0,4.0});
+    Cell1d ab(idvec[0], {0,1});
+    Cell1d bc(idvec[1], {1,2});
+    Cell1d cd(idvec[2], {2,3});
+    Cell1d da(idvec[3], {3,0});
+    Cell2d cella2d;
+    cella2d.id = 0;
+    cella2d.numVert= 4;
+    cella2d.Cell2DEdges = {ab, bc, cd, da};
+    cella2d.Cell2DVertices = {v0, v1, v2, v3};
+    Trace t;
+    t.retta = {0.0,1.0,0.0};
+    t.coordTrace={{0.0,-1.0,2.0},{0.0,1.0,2.0}};
+    t.p={0.0,-1.0,2.0};
+    pm.addFirstCell2d(cella2d);
 
-    points << 0.0, 1.0, 1.0, 0.0,
-        0.0, 0.0, 1.0, 1.0,
-        0.0, 0.0, 0.0, 0.0;
+    EXPECT_TRUE(cuttingfractures(cella2d, t, pm, next));
 
-    const std::vector<std::vector<unsigned int>> triangles =
-        {
-            { 0, 1, 3 },
-            { 1, 2, 3 }
-        };
+}
 
-    Eigen::VectorXi materials(2);
-    materials << 0, 1;
+TEST(POLYGONALTEST, testcuttingfractures2){
+    PolygonalMesh pm;
+    list<Cell2d> next;
+    vector<unsigned int> idvec = {0,1,2,3,4,5, 6, 7};
+    Cell0d v0(idvec[0], {2.0,-1.0,0.0});
+    Cell0d v1(idvec[1],{2.0,1.0,0.0});
+    Cell0d v2(idvec[2],{-2.0,1.0,4.0});
+    Cell0d v3(idvec[3], {-2.0,-1.0,4.0});
+    Cell0d v4(idvec[4], {2.0, 3.0,0.0});
+    Cell0d v5(idvec[5], {-2.0,3.0,4.0});
+    Cell1d ab(idvec[0], {0,1});
+    Cell1d bc(idvec[1], {1,2});
+    Cell1d cd(idvec[2], {2,3});
+    Cell1d da(idvec[3], {3,0});
+    Cell1d be(idvec[4], {1,4});
+    Cell1d ef(idvec[5],{4,5});
+    Cell1d fc(idvec[6],{5,2});
+    Cell2d cella2d;
+    cella2d.id = 0;
+    cella2d.numVert= 4;
+    cella2d.Cell2DEdges = {ab, bc, cd, da};
+    cella2d.Cell2DVertices = {v0, v1, v2, v3};
+    Cell2d cella2;
+    cella2.id = 1;
+    cella2.numVert = 4;
+    cella2.Cell2DEdges = {be, ef, fc, bc};
+    cella2.Cell2DVertices ={v1, v4, v5, v2};
+    Trace t;
+    t.retta = {0.0,1.0,0.0};
+    t.coordTrace={{0.0,-1.0,2.0},{0.0,3.0,2.0}};
+    t.p={0.0,-1.0,2.0};
 
-    Gedim::UCDUtilities exporter;
+    pm.addFirstCell2d(cella2d);
+    pm.MapCell2D[1] = cella2;
+    for(const Cell0d& c0: cella2.Cell2DVertices){
+        pm.MapCell0D[c0.id] = c0;
+        pm.Cell0DId.push_back(c0.id);
+    }
+    for(const Cell1d& c1: cella2.Cell2DEdges){
+        pm.MapCell1D[c1.id] = c1;
+        pm.Cell1DId.push_back(c1.id);
+    }
 
-    const std::vector<Gedim::UCDProperty<double> > points_properties = {};
-    const std::vector<Gedim::UCDProperty<double> > polygons_properties = {};
+    EXPECT_TRUE(cuttingfractures(cella2d, t, pm, next));
+    EXPECT_TRUE(cuttingfractures(cella2, t, pm, next));
 
-    exporter.ExportPolygons("./Geometry2Ds.inp",
-                            points,
-                            triangles,
-                            points_properties,
-                            polygons_properties,
-                            materials);
+}
+
+TEST(POLYGONALTEST, testcuttingfractures3){
+    PolygonalMesh pm;
+    list<Cell2d> next;
+    vector<unsigned int> idvec = {0,1,2,3,4,5, 6, 7};
+    Cell0d v0(idvec[0], {0.0,0.0,0.0});
+    Cell0d v1(idvec[1],{3.0,0.0,0.0});
+    Cell0d v2(idvec[2],{3.0,3.0,0.0});
+    Cell0d v3(idvec[3], {0.0,3.0,0.0});
+    Cell1d ab(idvec[0], {0,1});
+    Cell1d bc(idvec[1], {1,2});
+    Cell1d cd(idvec[2], {2,3});
+    Cell1d da(idvec[3], {3,0});
+    Trace t;
+    t.retta = {1.0,1.0,0.0};
+    t.coordTrace={{0.0,0.0,0.0},{3.0,3.0,0.0}};
+    t.p={3.0,3.0,0.0};
+    Cell2d cella2d;
+    cella2d.id = 0;
+    cella2d.numVert= 4;
+    cella2d.Cell2DEdges = {ab, bc, cd, da};
+    cella2d.Cell2DVertices = {v0, v1, v2, v3};
+    pm.addFirstCell2d(cella2d);
+
+    EXPECT_TRUE(cuttingfractures(cella2d, t, pm, next));
+
+}
+
+TEST(POLYGONALTEST, testNewPolygon){
+    unsigned int id0D, id1D, id2D;
+    FractureMesh mesh;
+    mesh.NumFractures=2;
+    mesh.FractureId={0,1};
+    Trace t;
+    t.retta = {0.0,1.0,0.0};
+    t.coordTrace={{0.0,-1.0,2.0},{0.0,3.0,2.0}};
+    t.p={0.0,-1.0,2.0};
+    mesh.MapTrace[0] = t;
+    Fracture f0, f1;
+    f0.id = 0;
+    f1.id=1;
+    f0.NumVertices=4;
+    f1.NumVertices=4;
+    f0.vertices={{2.0,-1.0,0.0}, {2.0,1.0,0.0}, {-2.0,1.0,4.0}, {-2.0,-1.0,4.0}};
+    f1.vertices={{2.0,1.0,0.0}, {2.0, 3.0,0.0}, {-2.0,3.0,4.0}, {-2.0,1.0,4.0}};
+    f0.onEdge[0]=false;
+    f1.onEdge[0]=false;
+    f0.listPas.push_back(t);
+    f1.listNonpas.push_back(t);
+    mesh.MapFractures.push_back(f0);
+    mesh.MapFractures.push_back(f1);
+
+    vector<PolygonalMesh> n = newpolygon(mesh);
+    EXPECT_EQ(n.size(), 2);
+    EXPECT_EQ(n[0].MapCell0D.size(), 6);
 
 
 }
-//********************************
-TEST(FRACTURETEST, TestPlotParaviewfractures){
 
-    MatrixXd points = MatrixXd::Zero(3, 4);
+TEST(POLYGONALTEST, testNewPolygoon2){
+    unsigned int id0D, id1D, id2D;
+    FractureMesh mesh;
+    mesh.NumFractures=1;
+    mesh.FractureId={0};
+    Trace t;
+    t.retta = {1.0,1.0,0.0};
+    t.coordTrace={{0.0,0.0,0.0},{3.0,3.0,0.0}};
+    t.p={3.0,3.0,0.0};
+    Trace t2;
+    t2.retta = {-2.0,3.0,0.0};
+    t2.coordTrace = {{3.0, 0.0, 0.0},{1.0, 3.0, 0.0}};
+    t2.p={1.0, 3.0, 0.0};
+    mesh.MapTrace[0] = t;
+    mesh.MapTrace[1] = t2;
+    Fracture f0;
+    f0.id = 0;
+    f0.vertices={{0.0,0.0,0.0}, {3.0,0.0,0.0}, {3.0,3.0,0.0}, {0.0,3.0,0.0}};
+    f0.NumVertices = 4;
+    f0.onEdge[0]=false;
+    f0.onEdge[1]=false;
+    f0.listPas.push_back(t);
+    f0.listPas.push_back(t2);
+    mesh.MapFractures.push_back(f0);
 
-    points << 0.0, 1.0, 1.0, 0.0,
-        0.0, 0.0, 1.0, 1.0,
-        0.0, 0.0, 0.0, 0.0;
+    vector<PolygonalMesh> n = newpolygon(mesh);
+    EXPECT_EQ(n[0].MapCell2D.size(), 5);
 
-    vector<vector<unsigned int>> pol_vertices = { {0, 1, 2, 3}};
-
-    Polygons polygons(points,
-                      pol_vertices);
-    std::vector<std::vector<unsigned int>> triangles;
-    Eigen::VectorXi materials;
-
-    polygons.GedimInterface(triangles, materials);
-
-    Gedim::UCDUtilities exporter;
-
-    exporter.ExportPolygons("./Geometry2Ds.inp",
-                            points,
-                            triangles,
-                            {},
-                            {},
-                            materials);
 }
-//********************************
 
 
-*/
+TEST(POLYGONALTEST, testCuttedByNonpas1){
+    PolygonalMesh pm;
+    vector<unsigned int> idvec = {0,1,2,3};
+    Cell0d v0(idvec[0], {0.0,0.0,0.0});
+    Cell0d v1(idvec[1],{3.0,0.0,0.0});
+    Cell0d v2(idvec[2],{3.0,3.0,0.0});
+    Cell0d v3(idvec[3], {0.0,3.0,0.0});
+    Cell1d ab(idvec[0], {0,1});
+    Cell1d bc(idvec[1], {1,2});
+    Cell1d cd(idvec[2], {2,3});
+    Cell1d da(idvec[3], {3,0});
+    Fracture f0;
+    f0.id = 0;
+    f0.vertices={{0.0,0.0,0.0}, {3.0,0.0,0.0}, {3.0,3.0,0.0}, {0.0,3.0,0.0}};
+    f0.NumVertices = 4;
+    Trace t;
+    t.retta = {1.0,0.0,0.0};
+    t.coordTrace={{-2.0,1.0,0.0},{2.0,1.0,0.0}};
+    t.p={0.0,1.0,0.0};
+    f0.onEdge[t.id]=false;
+    Cell2d cella2d;
+    cella2d.id = 0;
+    cella2d.numVert= 4;
+    cella2d.Cell2DEdges = {ab, bc, cd, da};
+    cella2d.Cell2DVertices = {v0, v1, v2, v3};
+    pm.addFirstCell2d(cella2d);
+    vector<Vector3d>copia = t.coordTrace;
+    sort(copia.begin(), copia.end(), compareFirstElement);
+
+    EXPECT_TRUE(cuttedByNonPas(copia, cella2d, f0, t));
+}
+
+TEST(POLYGONALTEST, testCuttedByNonpas2){
+    PolygonalMesh pm;
+    vector<unsigned int> idvec = {0,1,2,3};
+    Cell0d v0(idvec[0], {0.0,0.0,0.0});
+    Cell0d v1(idvec[1],{3.0,0.0,0.0});
+    Cell0d v2(idvec[2],{3.0,3.0,0.0});
+    Cell0d v3(idvec[3], {0.0,3.0,0.0});
+    Cell1d ab(idvec[0], {0,1});
+    Cell1d bc(idvec[1], {1,2});
+    Cell1d cd(idvec[2], {2,3});
+    Cell1d da(idvec[3], {3,0});
+    Fracture f0;
+    f0.id = 0;
+    f0.vertices={{0.0,0.0,0.0}, {3.0,0.0,0.0}, {3.0,3.0,0.0}, {0.0,3.0,0.0}};
+    f0.NumVertices = 4;
+    Trace t;
+    t.retta = {1.0,0.0,0.0};
+    t.coordTrace={{-5.0,1.0,0.0},{-1.0,1.0,0.0}};
+    t.p={-1.0,1.0,0.0};
+    f0.onEdge[t.id]=false;
+    Cell2d cella2d;
+    cella2d.id = 0;
+    cella2d.numVert= 4;
+    cella2d.Cell2DEdges = {ab, bc, cd, da};
+    cella2d.Cell2DVertices = {v0, v1, v2, v3};
+    pm.addFirstCell2d(cella2d);
+    vector<Vector3d>copia = t.coordTrace;
+    sort(copia.begin(), copia.end(), compareFirstElement);
+
+    EXPECT_FALSE(cuttedByNonPas(copia, cella2d, f0, t));
+
+}
+
+TEST(POLYGONALTEST, testsplitOneEdg){
+    PolygonalMesh pm;
+    vector<unsigned int> idvec = {0,1,2,3,4,5, 6, 7};
+    Cell0d v0(idvec[0], {2.0,-1.0,0.0});
+    Cell0d v1(idvec[1],{2.0,1.0,0.0});
+    Cell0d v2(idvec[2],{-2.0,1.0,4.0});
+    Cell0d v3(idvec[3], {-2.0,-1.0,4.0});
+    Cell0d v4(idvec[4], {0.0, 1.0,2.0});
+    //Cell0d v5(idvec[5], {-2.0,3.0,4.0});
+    Cell1d ab(idvec[0], {0,1});
+    Cell1d bc(idvec[1], {1,2});
+    Cell1d cd(idvec[2], {2,3});
+    Cell1d da(idvec[3], {3,0});
+    Cell1d be(idvec[4], {1,4});
+    Cell1d ec(idvec[5],{4,2});
+    //Cell1d fc(idvec[6],{5,2});
+
+    Cell2d c2;
+    c2.id=0;
+    c2.Cell2DEdges = {ab, bc, cd, da};
+    c2.Cell2DVertices={v0, v1, v2, v3};
+    unsigned int id=1;
+
+    pm.addFirstCell2d(c2);
+    pm.MapCell0D[4] = v4;
+    pm.MapCell1D.at(bc.id).old=true;
+    pm.MapCell1D.at(bc.id).tobecome={be, ec};
+    pm.MapCell1D[be.id] = be;
+    pm.MapCell1D[ec.id] = ec;
+
+    splitOneEdg(id, c2, pm);
+
+    EXPECT_EQ(pm.MapCell2D.at(id-1).Cell2DVertices.size(),5);
+}
+
+
+
 }
 
 #endif // TEST_HPP
