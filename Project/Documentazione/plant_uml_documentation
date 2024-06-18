@@ -1,0 +1,155 @@
+' Ogni codice UML inizia e termina con staruml - enduml
+@startuml
+
+title Progetto PCS_2024
+
+' Create package with folder style
+
+package FractureLibrary <<Folder>>
+{
+
+class Functionsmain{
+
++ bool checkIsNew ()
++ bool onSegment()
++ bool compareFirstElement()
++ bool orderLen()
++ bool sameLine()
++ bool cuttingfractures()
++ bool intersLato()
++ bool ImportFR_data()
+
++ VectorXd PALUSolver()
++ vector<PolygonalMesh> newpolygon()
++ vector<Vector3d> intersezionipoligonoretta()
+
++ void intersezioniSuRetta()
++ void printingPolygonMesh()
++ void findIntersections()
++ void defNewTrace()
+
++ double dist()
+
+.. TESTFUNCTIONSMAIN ..
+}
+
+struct Polygonalmesh{
++ numFrac : unsigned int
+
++ numCell0D : unsigned int
++ Cell0DId : list<unsigned int>
++ MapCell0D : map<unsigned int, Cell0d>
+
++ numCell1D : unsigned int
++ Cell1DId : list<unsigned int>
++ MapCell1D : map<unsigned int, Cell1d>
+
++ numCell2D : unsigned int
++ Cell2DId : list<unsigned int>
++ MapCell2D : map<unsigned int, Cell2d>
++ MapCell2DVertices : map<unsigned int, vector<unsigned int>>
++ MapCell2DEdges : map<unsigned int, vector<unsigned int>>
+
++ void addFirstCell2d()
++ void addingStuff()
+
+.. TESTPOLYGONALMESH ..
+}
+
+
+struct Trace{
++ fraId : Vector2i
++ coordTrace : vector<Vector3d>
++ Vector3d : retta
++ Vector3d : p
++ double : len
+
+}
+
+struct Fracture{
++ id : unsigned int
++ NumVertices : unsigned int
++ vertices : vector<Vector3d>
++ barycentre : Vector3d
++ listPas : list<Trace>
++ listNonpas : list<Trace>
++ tips : map<unsigned int,bool>
++ numFrac : unsigned int
++ idvertici : list<unsigned int>
++ idlati : list<unsigned int>
++ plane : vector<double>
++ onEdge : map<unsigned int,bool>
++ isOnEdge : bool
++ double maxDist()
++ Vector3d calcoloPiano()
+
+.. TESTFRACTURES ..
+}
+
+struct FractureMesh
+{
++ NumFractures : unsigned int
++ FractureId : vector<unsigned int>
++ MapFractures : vector<Fracture>
++ MapTrace : map<unsigned int, Trace>
++ void printingtraces()
++ void printingfractures()
+
+.. TESTFRACTUREMESH ..
+}
+
+struct Cell0d{
++ id : unsigned int
++ coordinates : Vector3d
++ old : bool
++ touched2D : vector<unsigned int>
+}
+
+struct Cell1d{
++ id : unsigned int
++ extremes : vector<unsigned int>
++ old : bool
++ touched2D : vector<unsigned int>
++ tobecome : vector<Cell1d>
+}
+
+struct Cell2d{
++ id : unsigned int
++ Cell2DVertices : vector<Cell0d>
++ Cell2DEdges : vector<Cell1d>
++ old : bool
++ numVert : unsigned int
++ numFrac : unsigned int
++ void convertFracture()
+}
+
+
+' Modeling relationship: https://blog.visual-paradigm.com/what-are-the-six-types-of-relationships-in-uml-class-diagrams/#:~:text=There%20are%20six%20main%20types,aggregation%20%2C%20association%2C%20and%20dependency%20.
+
+' Left, right, up, down to try to orient classes in the space based on their relationship
+
+' Aggregazione
+Polygonalmesh o--  Cell0d
+Polygonalmesh o--  Cell1d
+Polygonalmesh o--  Cell2d
+
+FractureMesh <.. Fracture
+FractureMesh <.. Trace
+
+}
+
+
+package Gedim <<Frame>>
+{
+
+}
+
+
+' PlotPolygon relies upon Gedim
+Polygon::GedimInterface --right--> Gedim
+
+' Add notes and link it with an object thourgh the sumbol ..
+note "This is an external package" as GedimNote
+GedimNote .. Gedim
+
+@enduml

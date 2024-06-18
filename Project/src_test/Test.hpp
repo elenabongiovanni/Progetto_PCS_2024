@@ -105,7 +105,6 @@ TEST(FractureTEST, Testintersezionipoligonoretta2) {
     // piano x=0
     Vector3d pianoConf (1,0,0);
     t = piano.cross(pianoConf);
-    //Vector2d beta;
     vector<Vector3d> intersezioni = intersezionipoligonoretta(t,p,f,onEdge);
 
     vector<Vector3d> intersezioniaspettate = {Vector3d(0.0, 1.0, 2.5),Vector3d(0.0,1.0,7.0)};
@@ -130,7 +129,6 @@ TEST(FractureTEST, Testintersezionipoligonoretta1) {
 
     vector<Vector3d> f = {{-6.0, 5.0, 0.0}, {-6.0, 0.5, 0.0}, {0.0, 0.0, 4.0}, {0.0, 5.0, 4.0}}; // num vertici uguale a 4
 
-    //Vector2d beta;
     vector<Vector3d> intersezioni = intersezionipoligonoretta(t, p, f,onEdge);
     vector<Vector3d> intersezioniaspettate = {Vector3d(0.0, 0.0, 4.0)};
 
@@ -203,6 +201,7 @@ TEST(FRACTURETest, testintersLato) {
 }
 
 // TEST per la funzione bool checkIsNew(const Cell1d& c2d, const Vector3d& point, const PolygonalMesh& pm, unsigned int& id);
+
 TEST(FRACTURETest, testcheckisnew1) {
     PolygonalMesh pm;
     unsigned int id;
@@ -224,6 +223,7 @@ TEST(FRACTURETest, testcheckisnew1) {
 
     EXPECT_TRUE(checkisnew);
 }
+
 
 TEST(FRACTURETest, testcheckisnew2) {
     PolygonalMesh pm;
@@ -301,13 +301,10 @@ TEST(FRACTURETEST, Testintersezionisuretta2){
     vector<Vector3d> s1 = {{2.0,0.0,0.0},{3.0,0.0,0.0}};
     vector<Vector3d> s2 = {{4.0,0.0,0.0},{5.0,0.0,0.0}};
 
-
     intersezioniSuRetta(bole,trace,s1,s2);
     EXPECT_FALSE(bole);
 
 }
-
-
 
 //TEST per la funzione  void printingtraces(const string& file)
 TEST(FRACTURETEST, Testprintingtraces){
@@ -324,7 +321,6 @@ TEST(FRACTURETEST, Testprintingtraces){
     string file = "    test_traccia    ";
     mesh.printingtraces(file);
 }
-
 
 //TEST per la funzione void convertFracture(const Fracture& f, unsigned int& idVert, unsigned int& idEdge, unsigned int& id2d)
 TEST(FRACTURETEST, TestconvertFracture){
@@ -492,6 +488,7 @@ TEST(FRACTURETEST, defNewTrace2){
     EXPECT_EQ(f2.listPas.size(),0);
 
 }
+
 
 TEST(POLYGONALTEST, testAddNewVertAndEdg){
 
@@ -962,8 +959,6 @@ TEST(POLYGONALTEST, testsplitOneEdg){
 
     EXPECT_EQ(pm.MapCell2D.at(id-1).Cell2DVertices.size(),5);
 }
-
-
 
 }
 

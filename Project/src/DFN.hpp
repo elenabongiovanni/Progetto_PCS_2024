@@ -15,6 +15,7 @@ using namespace Eigen;
 namespace FractureLibrary
 {
 
+
 double dist(Vector3d v1, Vector3d v2);
 
 // singola traccia condivisa da due fratture
@@ -50,6 +51,7 @@ struct Fracture
     bool isOnEdge = false;
 
     //calcolo distanza massima dal baricentro
+
     double maxDist(){
         double r = 0.0;
         for(unsigned int i=0; i< NumVertices; i++){
@@ -141,7 +143,6 @@ struct Cell0d{
     Vector3d coordinates;
     bool old = false;
     vector<unsigned int> touched2D = {};
-
     Cell0d():id(0), coordinates{} {}
     Cell0d(unsigned int& i, const Vector3d vert): id(i), coordinates(vert) {}
 };
@@ -171,7 +172,6 @@ struct Cell2d{
         Cell2DVertices.resize(numVert);
         Cell2DEdges.resize(numVert);
         id = id2d++;
-
         for(unsigned int i=0; i<numVert; i++){
             Cell0d newCell0d(idVert,f.vertices[i]);
             newCell0d.touched2D.push_back(this->id);
@@ -203,11 +203,13 @@ struct PolygonalMesh
 
     unsigned int numCell2D = 0;
     vector<unsigned int> Cell2DId = {};
+
     map<unsigned int, Cell2d> MapCell2D = {};
     map<unsigned int, vector<unsigned int>> MapCell2DVertices = {};
     map<unsigned int, vector<unsigned int>> MapCell2DEdges = {};
-
+  
     void addFirstCell2d(Cell2d& c2){
+
         numCell0D = c2.numVert;
         numCell1D = c2.numVert;
         numCell2D = 1;
@@ -265,6 +267,7 @@ struct PolygonalMesh
         for(const unsigned int& id: idLatitagliati){
             for(unsigned int& c2: MapCell1D.at(id).touched2D){
                 if(!MapCell2D.at(c2).old){
+
                     next.push_back(MapCell2D.at(c2));
 
                 }
@@ -322,3 +325,4 @@ void splitOneEdg(unsigned int& id2D, Cell2d& toCut, PolygonalMesh& pm);
 
 }
 #endif // DFN_HPP
+
