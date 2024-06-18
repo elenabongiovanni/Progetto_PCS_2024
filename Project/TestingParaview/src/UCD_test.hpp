@@ -1,8 +1,13 @@
-#ifndef _UCD_test_HPP_
-#define _UCD_test_HPP_
+
+#ifndef UCD_test_HPP
+#define UCD_test_HPP
+
 
 #include "UCDUtilities.hpp"
 #include <gtest/gtest.h>
+
+
+// *************************
 
 // ESPORTO SU PARAVIEW FRATTURA 1 DI FR3
 TEST(TestParaviewfr_3, UCDUtilities_Test0Ds_FR3_1)
@@ -45,12 +50,14 @@ TEST(TestParaviewfr_3, UCDUtilities_Test2Ds_FR3_1)
                                     0.0, 0.0, 0.0, 0.0,0.0,0.0,0.0,0.0).finished();
     const std::vector<std::vector<unsigned int>> polygons =
         {
-         { 0, 4, 6,7 },
-         { 6, 5, 3, 7 },
-         { 4, 1, 2 },
-         { 4, 2, 5 },
-         { 4, 5, 6 }
-         };
+
+            { 0, 4, 6,7 },
+            { 6, 5, 3, 7 },
+            { 4, 1, 2 },
+            { 4, 2, 5 },
+            { 4, 5, 6 }
+        };
+
 
     exporter.ExportPolygons(exportFolder + "/Geometry2Ds_fr3_1.inp",
                             points,
@@ -68,7 +75,8 @@ TEST(TestParaviewfr_3, UCDUtilities_Test0Ds_FR3_2)
     Gedim::UCDUtilities exporter;
     const Eigen::MatrixXd points = (Eigen::MatrixXd(3, 6)<< 0.8, 0.8, 0.8, 0.8, 0.8,0.8,
                                     0.0, 0.0, 1.0, 1.0,0.0, 1.0,
-                                    -0.1,0.29999,-0.1,0.0).finished();
+                                    -0.1,0.29999,0.29999,-0.1,0.0,0.0).finished();
+
 
     exporter.ExportPoints(exportFolder + "/Geometry0Ds_fr3_2.inp",
                           points);
@@ -82,10 +90,11 @@ TEST(TestParaviewfr_3, UCDUtilities_Test1Ds_FR3_2)
     Gedim::UCDUtilities exporter;
     const Eigen::MatrixXd points = (Eigen::MatrixXd(3, 6)<< 0.8, 0.8, 0.8, 0.8, 0.8,0.8,
                                     0.0, 0.0, 1.0, 1.0,0.0, 1.0,
-                                    -0.1,0.29999,-0.1,0.0).finished();
+                                    -0.1,0.29999,0.29999,-0.1,0.0,0.0).finished();
 
     const Eigen::MatrixXi edges = (Eigen::MatrixXi(2, 7)<< 1,3,0,4,2,5,5,
-                                    2,0,4,1,5,3,4).finished();
+                                   2,0,4,1,5,3,4).finished();
+
 
     exporter.ExportSegments(exportFolder + "/Geometry1Ds_fr3_2.inp",
                             points,
@@ -99,7 +108,8 @@ TEST(TestParaviewfr_3, UCDUtilities_Test2Ds_FR3_2)
     Gedim::UCDUtilities exporter;
     const Eigen::MatrixXd points = (Eigen::MatrixXd(3, 6)<< 0.8, 0.8, 0.8, 0.8, 0.8,0.8,
                                     0.0, 0.0, 1.0, 1.0,0.0, 1.0,
-                                    -0.1,0.29999,-0.1,0.0).finished();
+                                    -0.1,0.29999,0.29999,-0.1,0.0,0.0).finished();
+
 
     const std::vector<std::vector<unsigned int>> polygons =
         {
@@ -140,7 +150,8 @@ TEST(TestParaviewfr_3, UCDUtilities_Test1Ds_FR3_3)
                                     -0.344440, -0.344440,0.452838899,0.452838899,0.0,0.0).finished();
 
     const Eigen::MatrixXi edges = (Eigen::MatrixXi(2,7)<< 0,2,1,4,3,5,5,
-                                    1,3,4,2,5,0,4).finished();
+                                   1,3,4,2,5,0,4).finished();
+
 
     exporter.ExportSegments(exportFolder + "/Geometry1Ds_fr3_3.inp",
                             points,
@@ -166,9 +177,12 @@ TEST(TestParaviewfr_3, UCDUtilities_Test2Ds_FR3_3)
                             points,
                             polygons);
 }
+
 // *************************
 
 // ESPORTO SU PARAVIEW FRATTURA DI FR10
+
+
 TEST(TestParaviewfr_10, UCDUtilities_Test0Ds_FR10)
 {
     std::string exportFolder = "./";
@@ -213,21 +227,8 @@ TEST(TestParaviewfr_10, UCDUtilities_Test2Ds_FR10)
 
     const std::vector<std::vector<unsigned int>> polygons =
         {
-            /*{12,7,3,5,13},
-            {8,13,14 },
-            {13,5,9,14},
-            {6,2,15,16},
-            {4,10,18,19},
-        {18,8,19},
-        {10,17,20,18},
-        {20,16,12,13,8,18},
-        {0,21,19,8,14,9},
-        {21,4,19},
-        {17,1,6,16,20},
-        {11,22,23},
-        {22,7,12,23},
-        {15,11,23,12,16}
-        };*/
+
+        
         {12, 7, 3}, {12, 3, 5}, {12, 5, 13}, // {12, 7, 3, 5, 13}
         {8, 13, 14}, // {8, 13, 14}
         {13, 5, 9}, {13, 9, 14}, // {13, 5, 9, 14}
@@ -243,8 +244,11 @@ TEST(TestParaviewfr_10, UCDUtilities_Test2Ds_FR10)
         {22, 7, 12}, {22, 12, 23}, // {22, 7, 12, 23}
         {15, 11, 23}, {15, 23, 12}, {15, 12, 16} };
 
+
     exporter.ExportPolygons(exportFolder + "/Geometry2Ds_fr10.inp",
                             points,
                             polygons);
 }
-#endif // _UCD_test_HPP_
+
+#endif // UCD_test_HPP
+

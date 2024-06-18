@@ -52,6 +52,9 @@ list(APPEND ${CMAKE_PROJECT_NAME}_TEST_includes ${src_test_includes})
 #list(APPEND DFN_INCLUDE ${DFN_includes})
 
 add_subdirectory(TestingParaview/src)
+
+
+
 list(APPEND ${CMAKE_PROJECT_NAME}_sources ${src_paraview_sources})
 list(APPEND ${CMAKE_PROJECT_NAME}_headers ${src_paraview_headers})
 list(APPEND ${CMAKE_PROJECT_NAME}_includes ${src_paraview_includes})
@@ -87,5 +90,6 @@ ${${CMAKE_PROJECT_NAME}_TEST_headers})
 target_link_libraries(${PROJECT_NAME}_TEST ${DFN_LINKED_LIBRARIES})
 target_include_directories(${PROJECT_NAME}_TEST PRIVATE ${${CMAKE_PROJECT_NAME}_includes} ${${CMAKE_PROJECT_NAME}_TEST_includes})
 target_compile_options(${PROJECT_NAME}_TEST PUBLIC -fPIC)
+
 
 
