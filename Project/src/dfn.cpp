@@ -1,5 +1,4 @@
 #include "dfn.hpp"
-//#include "utils.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -8,7 +7,6 @@
 #include <map>
 #include <iomanip>
 #include <list>
-#include "poligonalMesh.hpp"
 #include <Eigen/Dense>
 
 using namespace std;
