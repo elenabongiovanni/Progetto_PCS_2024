@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include "Eigen/Eigen"
-//#include "poligonalMesh.hpp"
 #include <map>
 #include <vector>
 #include <iomanip>
